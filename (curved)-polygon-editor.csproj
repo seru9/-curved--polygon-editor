@@ -9,4 +9,10 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Alghorithms\" />
+    <Folder Include="Services\" />
+    <Folder Include="Views\" />
+  </ItemGroup>
+
 </Project>

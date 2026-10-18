@@ -4,9 +4,68 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:_curved__polygon_editor"
+        xmlns:vm="clr-namespace:_curved__polygon_editor.ViewModels"
+        xmlns:helpers="clr-namespace:_curved__polygon_editor.Helpers"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=True}">
+    <Window.Resources>
+        <helpers:EdgeToGeometryConverter x:Key="EdgeToGeometryConverter" />
+        <helpers:SubtractConverter x:Key="SubtractConverter" />
+    </Window.Resources>
     <Grid>
+        <!-- Główny Canvas zajmujący całe okno -->
+        <Canvas ClipToBounds="True" Background="White">
 
+            <!-- Iteracja po wielokątach -->
+            <ItemsControl ItemsSource="{Binding Polygons}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <!-- Używamy Grid zamiast pustego Canvas, żeby elementy pokrywały całą przestrzeń -->
+                        <Grid>
+                            <!-- 1. Krawędzie -->
+                            <ItemsControl ItemsSource="{Binding Edges}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Canvas />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Path Data="{Binding ., Converter={StaticResource EdgeToGeometryConverter}}"
+                                              Stroke="Black" StrokeThickness="2" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- 2. Wierzchołki (kółka) -->
+                            <ItemsControl ItemsSource="{Binding Vertices}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Canvas />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Ellipse Width="8" Height="8" Fill="Red" Stroke="DarkRed" StrokeThickness="1"
+                                                 Canvas.Left="{Binding X, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" 
+                                                 Canvas.Top="{Binding Y, Converter={StaticResource SubtractConverter}, ConverterParameter=4}">
+                                            <!-- Wymuszenie odczytu właściwości Canvas przez styl, jeśli grid nie przekazuje kontekstu w ten sam sposób -->
+                                        </Ellipse>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </Canvas>
     </Grid>
 </Window>
