@@ -1,0 +1,43 @@
+# WPF / Visual Studio / .NET Core / .NET Framework
+## Visual Studio cache / user-specific files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Build outputs
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+## Diagnostic files
+*.aps
+*.ilk
+*.lic
+*.lock
+*.pdb
+*.cache
+*.unsuccessfulbuild
+
+## Publish directory
+publish/
+*.[Pp][Uu][Bb][Ll][Ii][Ss][Hh]
+
+## NuGet packages
+[Nn]uGet/
+*.nupkg
+packages/
+**/packages/*
+!**/packages/build/
+
+## OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
