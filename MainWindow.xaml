@@ -1,4 +1,4 @@
-﻿<Window x:Class="_curved__polygon_editor.MainWindow"
+<Window x:Class="_curved__polygon_editor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -26,10 +26,12 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <!-- Używamy Grid zamiast pustego Canvas, żeby elementy pokrywały całą przestrzeń -->
-                        <Grid>
+                        <!-- Canvas rozciągnięty na całą dostępną przestrzeń, żeby Canvas.Left/Top działały poprawnie -->
+                        <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                             <!-- 1. Krawędzie -->
-                            <ItemsControl ItemsSource="{Binding Edges}">
+                            <ItemsControl ItemsSource="{Binding Edges}"
+                                          Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                                          Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <Canvas />
@@ -44,24 +46,29 @@
                             </ItemsControl>
 
                             <!-- 2. Wierzchołki (kółka) -->
-                            <ItemsControl ItemsSource="{Binding Vertices}">
+                            <!-- Canvas.Left/Top musi być na ContentPresenter (bezpośrednim dziecku Canvas), nie na Ellipse wewnątrz DataTemplate -->
+                            <ItemsControl ItemsSource="{Binding Vertices}"
+                                          Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                                          Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <Canvas />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="ContentPresenter">
+                                        <Setter Property="Canvas.Left" Value="{Binding X, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" />
+                                        <Setter Property="Canvas.Top"  Value="{Binding Y, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Ellipse Width="8" Height="8" Fill="Red" Stroke="DarkRed" StrokeThickness="1"
-                                                 Canvas.Left="{Binding X, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" 
-                                                 Canvas.Top="{Binding Y, Converter={StaticResource SubtractConverter}, ConverterParameter=4}">
-                                            <!-- Wymuszenie odczytu właściwości Canvas przez styl, jeśli grid nie przekazuje kontekstu w ten sam sposób -->
-                                        </Ellipse>
+                                        <Ellipse Width="8" Height="8" Fill="Red" Stroke="DarkRed" StrokeThickness="1" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                        </Grid>
+                        </Canvas>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
