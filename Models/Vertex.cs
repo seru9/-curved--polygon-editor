@@ -46,6 +46,21 @@ namespace _curved__polygon_editor.Models
 		}
 		public double X => _position.X; // helpful for binding
 		public double Y => _position.Y;
+
+		private bool _isSelected;
+		public bool IsSelected
+		{
+			get => _isSelected;
+			set
+			{
+				if (_isSelected != value)
+				{
+					_isSelected = value;
+					OnPropertyChanged(nameof(IsSelected));
+				}
+			}
+		}
+
 		public Vertex(Point position, ContinuityType continuity = ContinuityType.G0)
 		{
 			Position = position;

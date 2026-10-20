@@ -17,6 +17,8 @@ namespace _curved__polygon_editor
         private MainViewModel _vm;
         private Vertex? _draggedVertex = null;
         private Polygon? _draggedPolygon = null;
+        private Polygon? _draggedWholePolygon = null;
+        private Point _lastDragPosition;
 
         public MainWindow()
         {
@@ -38,6 +40,8 @@ namespace _curved__polygon_editor
                     double dist = (pos - vertex.Position).Length;
                     if (dist <= vertexHitRadius)
                     {
+                        _vm.ClearSelection();
+                        _vm.SelectVertex(vertex);
                         _draggedVertex = vertex;
                         _draggedPolygon = polygon;
                         ((IInputElement)sender).CaptureMouse();
@@ -66,13 +70,30 @@ namespace _curved__polygon_editor
 
             if (nearest != null && best < 8)
             {
+                _vm.SelectVertex(null);
                 _vm.ToggleSelection(nearest);
                 e.Handled = true;
+                return;
             }
-            else
+
+            // 3. Sprawdź, czy kliknięto we wnętrzu wielokąta (przesuwanie całego wielokąta)
+            foreach (var polygon in _vm.Polygons)
             {
-                _vm.ClearSelection();
+                if (ConstraintSolver.IsPointInPolygon(pos, polygon))
+                {
+                    _draggedWholePolygon = polygon;
+                    _lastDragPosition = pos;
+                    _vm.ClearSelection();
+                    _vm.SelectVertex(null);
+                    ((IInputElement)sender).CaptureMouse();
+                    e.Handled = true;
+                    return;
+                }
             }
+
+            // 4. Kliknięcie w puste tło - wyczyszczenie zaznaczenia
+            _vm.ClearSelection();
+            _vm.SelectVertex(null);
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
@@ -88,14 +109,28 @@ namespace _curved__polygon_editor
                 // Aktualizacja plakietek ograniczeń (jeśli istnieją)
                 _vm.UpdateConstraintVisuals();
             }
+            else if (_draggedWholePolygon != null && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var pos = e.GetPosition((IInputElement)sender);
+                Vector delta = pos - _lastDragPosition;
+
+                foreach (var v in _draggedWholePolygon.Vertices)
+                {
+                    v.Position = new Point(v.Position.X + delta.X, v.Position.Y + delta.Y);
+                }
+
+                _lastDragPosition = pos;
+                _vm.UpdateConstraintVisuals();
+            }
         }
 
         private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (_draggedVertex != null)
+            if (_draggedVertex != null || _draggedWholePolygon != null)
             {
                 _draggedVertex = null;
                 _draggedPolygon = null;
+                _draggedWholePolygon = null;
                 ((IInputElement)sender).ReleaseMouseCapture();
             }
         }
@@ -113,6 +148,37 @@ namespace _curved__polygon_editor
 
             var projection = new Point(a.X + t * dx, a.Y + t * dy);
             return (point - projection).Length;
+        }
+
+        private void AddVertexButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_vm.AddVertexInMiddleOfSelectedEdge(out string? error))
+            {
+                MessageBox.Show(error, "Dodawanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void DeleteVertexButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_vm.DeleteSelectedVertex(out string? error))
+            {
+                MessageBox.Show(error, "Usuwanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete)
+            {
+                if (_vm.SelectedVertex != null)
+                {
+                    if (!_vm.DeleteSelectedVertex(out string? error))
+                    {
+                        MessageBox.Show(error, "Usuwanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    e.Handled = true;
+                }
+            }
         }
 
         private void LengthButton_Click(object sender, RoutedEventArgs e)

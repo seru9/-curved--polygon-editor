@@ -140,6 +140,27 @@ namespace _curved__polygon_editor.Algorithms
 			return dist1 <= dist2 ? i1 : i2;
 		}
 
+		public static bool IsPointInPolygon(Point p, Polygon polygon)
+		{
+			var verts = polygon.Vertices;
+			int count = verts.Count;
+			if (count < 3) return false;
+
+			bool inside = false;
+			for (int i = 0, j = count - 1; i < count; j = i++)
+			{
+				double xi = verts[i].X, yi = verts[i].Y;
+				double xj = verts[j].X, yj = verts[j].Y;
+
+				bool intersect = ((yi > p.Y) != (yj > p.Y)) &&
+					(p.X < (xj - xi) * (p.Y - yi) / (yj - yi) + xi);
+
+				if (intersect)
+					inside = !inside;
+			}
+			return inside;
+		}
+
 		private static void ApplyPerpendicularConstraint(Edge edge1, Edge edge2)
 		{
 			// Logika wymuszenia prostopadłości (iloczyn skalarny wektorów obu krawędzi = 0)
