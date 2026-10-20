@@ -50,6 +50,7 @@
             <Button Content="Dodaj wierzchołek" Click="AddVertexButton_Click" Margin="0,0,6,0" />
             <Button Content="Usuń wierzchołek" Click="DeleteVertexButton_Click" Margin="0,0,6,0" />
             <Button Content="Ustaw długość" Click="LengthButton_Click" Margin="0,0,6,0" />
+            <Button Content="Ustaw prostopadłość" Click="PerpendicularButton_Click" Margin="0,0,6,0" />
             <Button Content="Usuń ograniczenie" Click="RemoveConstraintButton_Click" Margin="0,0,6,0" />
             <Button Content="Wyczyść zaznaczenie" Click="ClearSelectionButton_Click" />
         </StackPanel>
@@ -130,9 +131,9 @@
                 </ItemsControl.ItemContainerStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="#FFFFF3B0" BorderBrush="Orange" BorderThickness="1"
-                                CornerRadius="3" Padding="2,1">
-                            <TextBlock Text="{Binding Text}" FontSize="10" Foreground="#B8860B" />
+                        <Border Background="{Binding Background}" BorderBrush="{Binding BorderBrush}" BorderThickness="1"
+                                CornerRadius="3" Padding="3,1">
+                            <TextBlock Text="{Binding Text}" FontSize="10" FontWeight="SemiBold" Foreground="{Binding Foreground}" />
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

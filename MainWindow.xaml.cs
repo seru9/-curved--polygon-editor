@@ -196,6 +196,20 @@ namespace _curved__polygon_editor
                 _vm.AddLengthConstraint(edge, result.Value);
         }
 
+        private void PerpendicularButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vm.SelectedEdges.Count != 2)
+            {
+                MessageBox.Show("Zaznacz dokładnie dwie krawędzie, aby ustawić między nimi prostopadłość.", "Prostopadłość", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (!_vm.AddPerpendicularConstraint(_vm.SelectedEdges[0], _vm.SelectedEdges[1], out string? error))
+            {
+                MessageBox.Show(error, "Prostopadłość", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
         private void ClearSelectionButton_Click(object sender, RoutedEventArgs e)
         {
             _vm.ClearSelection();

@@ -68,6 +68,54 @@ namespace _curved__polygon_editor.ViewModels
 			SelectVertex(null);
 		}
 
+		private int _nextPerpendicularPairId = 1;
+
+		public bool AddPerpendicularConstraint(Edge e1, Edge e2, out string? errorMessage)
+		{
+			if (e1 == e2)
+			{
+				errorMessage = "Wybierz dwie różne krawędzie.";
+				return false;
+			}
+
+			// Usuń ewentualne poprzednie ograniczenia prostopadłości z obu krawędzi (i ich partnerów)
+			RemovePerpendicularConstraintOnly(e1);
+			RemovePerpendicularConstraintOnly(e2);
+
+			int pairId = _nextPerpendicularPairId++;
+			e1.Constraints.Add(new PerpendicularConstraint(e2, pairId));
+			e2.Constraints.Add(new PerpendicularConstraint(e1, pairId));
+
+			ConstraintSolver.ApplyPerpendicularConstraint(e1, e2);
+			UpdateConstraintVisuals();
+			errorMessage = null;
+			return true;
+		}
+
+		private void RemovePerpendicularConstraintOnly(Edge edge)
+		{
+			var perps = edge.Constraints.OfType<PerpendicularConstraint>().ToList();
+			foreach (var pc in perps)
+			{
+				edge.Constraints.Remove(pc);
+				if (pc.TargetEdge != null)
+				{
+					var partnerPcs = pc.TargetEdge.Constraints.OfType<PerpendicularConstraint>()
+						.Where(p => p.TargetEdge == edge || p.PairId == pc.PairId).ToList();
+					foreach (var ppc in partnerPcs)
+					{
+						pc.TargetEdge.Constraints.Remove(ppc);
+					}
+				}
+			}
+		}
+
+		private void RemoveEdgeConstraintsAndNotifyPartners(Edge edge)
+		{
+			RemovePerpendicularConstraintOnly(edge);
+			edge.Constraints.Clear();
+		}
+
 		public bool DeleteSelectedVertex(out string? errorMessage)
 		{
 			if (SelectedVertex == null)
@@ -103,6 +151,10 @@ namespace _curved__polygon_editor.ViewModels
 			Vertex vNext = (e2.StartVertex == SelectedVertex) ? e2.EndVertex : e2.StartVertex;
 
 			int insertIndex = polygon.Edges.IndexOf(e1);
+
+			// Czyszczenie relacji z usuwanych krawędzi (w tym powiadomienie krawędzi partnerskich)
+			RemoveEdgeConstraintsAndNotifyPartners(e1);
+			RemoveEdgeConstraintsAndNotifyPartners(e2);
 
 			polygon.Edges.Remove(e1);
 			polygon.Edges.Remove(e2);
@@ -173,6 +225,10 @@ namespace _curved__polygon_editor.ViewModels
 			Edge e2 = new Edge(newVertex, v2, EdgeType.Line);
 
 			int edgeIndex = polygon.Edges.IndexOf(edge);
+
+			// Czyszczenie relacji z dzielonej krawędzi
+			RemoveEdgeConstraintsAndNotifyPartners(edge);
+
 			polygon.Edges.Remove(edge);
 			SelectedEdges.Remove(edge);
 
@@ -210,11 +266,7 @@ namespace _curved__polygon_editor.ViewModels
 		{
 			foreach (var edge in SelectedEdges)
 			{
-				var existing = edge.Constraints.OfType<LengthConstraint>().ToList();
-				foreach (var c in existing)
-				{
-					edge.Constraints.Remove(c);
-				}
+				RemoveEdgeConstraintsAndNotifyPartners(edge);
 			}
 			UpdateConstraintVisuals();
 		}
@@ -226,16 +278,66 @@ namespace _curved__polygon_editor.ViewModels
 			{
 				foreach (var edge in polygon.Edges)
 				{
+					var activeConstraints = new List<ConstraintVisual>();
+
 					var lengthConstraint = edge.Constraints.OfType<LengthConstraint>().FirstOrDefault(c => c.IsActive);
 					if (lengthConstraint != null)
 					{
-						var center = edge.GetCenterPoint();
-						ConstraintVisuals.Add(new ConstraintVisual
+						activeConstraints.Add(new ConstraintVisual
 						{
-							X = center.X,
-							Y = center.Y,
-							Text = $"L={lengthConstraint.TargetLength:0.##}"
+							Text = $"L={lengthConstraint.TargetLength:0.##}",
+							Background = "#FFFFF3B0",
+							BorderBrush = "Orange",
+							Foreground = "#B8860B"
 						});
+					}
+
+					var perpConstraint = edge.Constraints.OfType<PerpendicularConstraint>().FirstOrDefault(c => c.IsActive);
+					if (perpConstraint != null)
+					{
+						activeConstraints.Add(new ConstraintVisual
+						{
+							Text = $"⟂{perpConstraint.PairId}",
+							Background = "#E1F5FE",
+							BorderBrush = "#03A9F4",
+							Foreground = "#0277BD"
+						});
+					}
+
+					if (activeConstraints.Count == 0) continue;
+
+					Point center = edge.GetCenterPoint();
+					Vector dir = edge.EndVertex.Position - edge.StartVertex.Position;
+					if (dir.Length > 0.0001)
+					{
+						dir.Normalize();
+					}
+					else
+					{
+						dir = new Vector(1, 0);
+					}
+
+					if (activeConstraints.Count == 1)
+					{
+						var visual = activeConstraints[0];
+						visual.X = center.X;
+						visual.Y = center.Y;
+						ConstraintVisuals.Add(visual);
+					}
+					else
+					{
+						// Gdy jest kilka ograniczeń na krawędzi, rozsuwamy je wzdłuż krawędzi
+						double spacing = 22.0;
+						double startOffset = -(activeConstraints.Count - 1) * spacing / 2.0;
+
+						for (int i = 0; i < activeConstraints.Count; i++)
+						{
+							var visual = activeConstraints[i];
+							double offset = startOffset + i * spacing;
+							visual.X = center.X + dir.X * offset;
+							visual.Y = center.Y + dir.Y * offset;
+							ConstraintVisuals.Add(visual);
+						}
 					}
 				}
 			}
