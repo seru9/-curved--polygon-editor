@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using _curved__polygon_editor.Algorithms;
 using _curved__polygon_editor.Models;
 using _curved__polygon_editor.ViewModels;
 
@@ -80,8 +81,9 @@ namespace _curved__polygon_editor
             {
                 var pos = e.GetPosition((IInputElement)sender);
 
-                // Aktualizacja pozycji wierzchołka (ruch swobodny)
-                _draggedVertex.Position = pos;
+                // Wyznaczenie pozycji wierzchołka z uwzględnieniem ograniczeń (ruch po łuku)
+                Point constrainedPos = ConstraintSolver.ConstrainVertexPosition(_draggedPolygon, _draggedVertex, pos);
+                _draggedVertex.Position = constrainedPos;
 
                 // Aktualizacja plakietek ograniczeń (jeśli istnieją)
                 _vm.UpdateConstraintVisuals();
@@ -131,6 +133,17 @@ namespace _curved__polygon_editor
         private void ClearSelectionButton_Click(object sender, RoutedEventArgs e)
         {
             _vm.ClearSelection();
+        }
+
+        private void RemoveConstraintButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vm.SelectedEdges.Count == 0)
+            {
+                MessageBox.Show("Zaznacz krawędź, z której chcesz usunąć ograniczenie.", "Usuń ograniczenie", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            _vm.RemoveConstraintsFromSelected();
         }
 
         private static double GetEdgeLength(Edge edge)

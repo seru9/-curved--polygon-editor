@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using _curved__polygon_editor.Algorithms;
 using _curved__polygon_editor.Models;
 using _curved__polygon_editor.Models.Constraints;
 
@@ -53,6 +54,20 @@ namespace _curved__polygon_editor.ViewModels
 			}
 
 			edge.Constraints.Add(new LengthConstraint(targetLength));
+			ConstraintSolver.ApplyLengthConstraint(edge, targetLength);
+			UpdateConstraintVisuals();
+		}
+
+		public void RemoveConstraintsFromSelected()
+		{
+			foreach (var edge in SelectedEdges)
+			{
+				var existing = edge.Constraints.OfType<LengthConstraint>().ToList();
+				foreach (var c in existing)
+				{
+					edge.Constraints.Remove(c);
+				}
+			}
 			UpdateConstraintVisuals();
 		}
 
