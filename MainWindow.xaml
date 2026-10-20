@@ -12,10 +12,34 @@
     <Window.Resources>
         <helpers:EdgeToGeometryConverter x:Key="EdgeToGeometryConverter" />
         <helpers:SubtractConverter x:Key="SubtractConverter" />
+        <Style x:Key="EdgePathStyle" TargetType="Path">
+            <Setter Property="Stroke" Value="Black" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Stroke" Value="DodgerBlue" />
+                    <Setter Property="StrokeThickness" Value="3" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
     <Grid>
-        <!-- Główny Canvas zajmujący całe okno -->
-        <Canvas ClipToBounds="True" Background="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Pasek narzędzi -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="6">
+            <Button Content="Ustaw długość" Click="LengthButton_Click" Margin="0,0,6,0" />
+            <Button Content="Wyczyść zaznaczenie" Click="ClearSelectionButton_Click" />
+        </StackPanel>
+
+        <!-- Główny Canvas -->
+        <Canvas x:Name="DrawingCanvas" Grid.Row="1" ClipToBounds="True" Background="White"
+                MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
+                MouseMove="Canvas_MouseMove"
+                MouseLeftButtonUp="Canvas_MouseLeftButtonUp">
 
             <!-- Iteracja po wielokątach -->
             <ItemsControl ItemsSource="{Binding Polygons}">
@@ -39,14 +63,13 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Path Data="{Binding ., Converter={StaticResource EdgeToGeometryConverter}}"
-                                              Stroke="Black" StrokeThickness="2" />
+                                        <Path Data="{Binding Self, Converter={StaticResource EdgeToGeometryConverter}}"
+                                              Style="{StaticResource EdgePathStyle}" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
                             <!-- 2. Wierzchołki (kółka) -->
-                            <!-- Canvas.Left/Top musi być na ContentPresenter (bezpośrednim dziecku Canvas), nie na Ellipse wewnątrz DataTemplate -->
                             <ItemsControl ItemsSource="{Binding Vertices}"
                                           Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
                                           Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}">
@@ -63,12 +86,35 @@
                                 </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Ellipse Width="8" Height="8" Fill="Red" Stroke="DarkRed" StrokeThickness="1" />
+                                        <Ellipse Width="8" Height="8" Fill="Red" Stroke="DarkRed" StrokeThickness="1" Cursor="Hand" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
                         </Canvas>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- 3. Ikony aktywnych ograniczeń -->
+            <ItemsControl ItemsSource="{Binding ConstraintVisuals}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X, Converter={StaticResource SubtractConverter}, ConverterParameter=8}" />
+                        <Setter Property="Canvas.Top"  Value="{Binding Y, Converter={StaticResource SubtractConverter}, ConverterParameter=8}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#FFFFF3B0" BorderBrush="Orange" BorderThickness="1"
+                                CornerRadius="3" Padding="2,1">
+                            <TextBlock Text="{Binding Text}" FontSize="10" Foreground="#B8860B" />
+                        </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

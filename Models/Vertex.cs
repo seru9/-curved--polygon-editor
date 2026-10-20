@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +13,7 @@ namespace _curved__polygon_editor.Models
 		G1,
 		C1
 	};
-	public class Vertex
+	public class Vertex : INotifyPropertyChanged
 	{
 		private Point _position;
 		private ContinuityType _continuity;
@@ -27,6 +27,8 @@ namespace _curved__polygon_editor.Models
 				{
 					_position = value;
 					OnPropertyChanged(nameof(Position));
+					OnPropertyChanged(nameof(X));
+					OnPropertyChanged(nameof(Y));
 				}
 			}
 		}
@@ -49,7 +51,7 @@ namespace _curved__polygon_editor.Models
 			Position = position;
 			Continuity = continuity;
 		}
-		public event PropertyChangedEventHandler PropertyChanged;
+		public event PropertyChangedEventHandler? PropertyChanged;
 		protected void OnPropertyChanged(string propertyName) =>
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}

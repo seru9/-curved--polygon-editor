@@ -1,19 +1,81 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using _curved__polygon_editor.Models;
+using _curved__polygon_editor.Models.Constraints;
+
 namespace _curved__polygon_editor.ViewModels
 {
 	public class MainViewModel
 	{
 		public ObservableCollection<Polygon> Polygons { get; set; } = new ObservableCollection<Polygon>();
+		public ObservableCollection<Edge> SelectedEdges { get; } = new ObservableCollection<Edge>();
+		public ObservableCollection<ConstraintVisual> ConstraintVisuals { get; } = new ObservableCollection<ConstraintVisual>();
+
 		public MainViewModel()
 		{
 			InitializeDemoScene();
+			UpdateConstraintVisuals();
+		}
+
+		public void ToggleSelection(Edge edge)
+		{
+			edge.IsSelected = !edge.IsSelected;
+			if (edge.IsSelected)
+			{
+				if (!SelectedEdges.Contains(edge))
+					SelectedEdges.Add(edge);
+			}
+			else
+			{
+				SelectedEdges.Remove(edge);
+			}
+		}
+
+		public void ClearSelection()
+		{
+			foreach (var edge in SelectedEdges)
+			{
+				edge.IsSelected = false;
+			}
+			SelectedEdges.Clear();
+		}
+
+		public void AddLengthConstraint(Edge edge, double targetLength)
+		{
+			var existing = edge.Constraints.OfType<LengthConstraint>().FirstOrDefault();
+			if (existing != null)
+			{
+				edge.Constraints.Remove(existing);
+			}
+
+			edge.Constraints.Add(new LengthConstraint(targetLength));
+			UpdateConstraintVisuals();
+		}
+
+		public void UpdateConstraintVisuals()
+		{
+			ConstraintVisuals.Clear();
+			foreach (var polygon in Polygons)
+			{
+				foreach (var edge in polygon.Edges)
+				{
+					var lengthConstraint = edge.Constraints.OfType<LengthConstraint>().FirstOrDefault(c => c.IsActive);
+					if (lengthConstraint != null)
+					{
+						var center = edge.GetCenterPoint();
+						ConstraintVisuals.Add(new ConstraintVisual
+						{
+							X = center.X,
+							Y = center.Y,
+							Text = $"L={lengthConstraint.TargetLength:0.##}"
+						});
+					}
+				}
+			}
 		}
 		private void InitializeDemoScene()
 		{
@@ -29,11 +91,7 @@ namespace _curved__polygon_editor.ViewModels
 
 			p1.Edges.Add(new Edge(v1, v2, EdgeType.Line));
 			p1.Edges.Add(new Edge(v2, v3, EdgeType.Line));
-
-			// Krawędź z Bézierem (Wymaganie nr 3 i 8)
-			//var bezierEdge = new Edge(v3, v1, EdgeType.Bezier);
-			//bezierEdge.ControlPoints = new Point[] { new Point(80, 220), new Point(20, 120) };
-			//p1.Edges.Add(bezierEdge);
+			p1.Edges.Add(new Edge(v3, v1, EdgeType.Line));
 
 			Polygons.Add(p1);
 

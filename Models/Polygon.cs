@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace _curved__polygon_editor.Models
 {
-	public class Polygon
+	public class Polygon : INotifyPropertyChanged
 	{
 		private ObservableCollection<Vertex> _vertices;
 		private ObservableCollection<Edge> _edges;
@@ -32,10 +32,10 @@ namespace _curved__polygon_editor.Models
 		}
 		public Polygon()
 		{
-			Vertices = new ObservableCollection<Vertex>();
-			Edges = new ObservableCollection<Edge>();
+			_vertices = new ObservableCollection<Vertex>();
+			_edges = new ObservableCollection<Edge>();
 		}
-		public event PropertyChangedEventHandler PropertyChanged;
+		public event PropertyChangedEventHandler? PropertyChanged;
 		protected void OnPropertyChanged(string propertyName) =>
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}

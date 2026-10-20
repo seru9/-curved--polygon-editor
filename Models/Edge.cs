@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -15,7 +15,7 @@ namespace _curved__polygon_editor.Models
 		Bezier,     
 		Arc         
 	}
-	public class Edge
+	public class Edge : INotifyPropertyChanged
 	{
 		private Vertex _startVertex;
 		private Vertex _endVertex;
@@ -29,8 +29,13 @@ namespace _curved__polygon_editor.Models
 			{
 				if (_startVertex != value)
 				{
+					if (_startVertex != null)
+						_startVertex.PropertyChanged -= Vertex_PropertyChanged;
 					_startVertex = value;
+					if (_startVertex != null)
+						_startVertex.PropertyChanged += Vertex_PropertyChanged;
 					OnPropertyChanged(nameof(StartVertex));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
@@ -41,8 +46,13 @@ namespace _curved__polygon_editor.Models
 			{
 				if (_endVertex != value)
 				{
+					if (_endVertex != null)
+						_endVertex.PropertyChanged -= Vertex_PropertyChanged;
 					_endVertex = value;
+					if (_endVertex != null)
+						_endVertex.PropertyChanged += Vertex_PropertyChanged;
 					OnPropertyChanged(nameof(EndVertex));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
@@ -71,13 +81,41 @@ namespace _curved__polygon_editor.Models
 			}
 		}
 		public ObservableCollection<Constraint> Constraints { get; set; } = new ObservableCollection<Constraint>();
+		private bool _isSelected;
+		public bool IsSelected
+		{
+			get => _isSelected;
+			set
+			{
+				if (_isSelected != value)
+				{
+					_isSelected = value;
+					OnPropertyChanged(nameof(IsSelected));
+				}
+			}
+		}
+		public Edge Self => this;
+
 		public Edge(Vertex startVertex, Vertex endVertex, EdgeType edgeType = EdgeType.Line)
 		{
-			StartVertex = startVertex;
-			EndVertex = endVertex;
-			EdgeType = edgeType;
-			ControlPosition = new Point[0];
+			_startVertex = startVertex;
+			_endVertex = endVertex;
+			_edgeType = edgeType;
+			_controlPoints = Array.Empty<Point>();
+
+			_startVertex.PropertyChanged += Vertex_PropertyChanged;
+			_endVertex.PropertyChanged += Vertex_PropertyChanged;
 		}
+
+		private void Vertex_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName == nameof(Vertex.Position) || e.PropertyName == nameof(Vertex.X) || e.PropertyName == nameof(Vertex.Y))
+			{
+				OnPropertyChanged(nameof(Self));
+				OnPropertyChanged(string.Empty);
+			}
+		}
+
 		public Point GetCenterPoint()
 		{
 			if (this.EdgeType == EdgeType.Bezier && ControlPosition != null && ControlPosition.Length >= 2)
@@ -103,7 +141,7 @@ namespace _curved__polygon_editor.Models
 				);
 			}
 		}
-		public event PropertyChangedEventHandler PropertyChanged;
+		public event PropertyChangedEventHandler? PropertyChanged;
 		protected void OnPropertyChanged(string propertyName) =>
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}

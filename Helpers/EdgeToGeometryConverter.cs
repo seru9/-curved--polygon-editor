@@ -1,4 +1,4 @@
-﻿using _curved__polygon_editor.Models;
+using _curved__polygon_editor.Models;
 using System;
 using System.Globalization;
 using System.Windows;
