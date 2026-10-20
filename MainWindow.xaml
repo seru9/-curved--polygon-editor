@@ -8,10 +8,26 @@
         xmlns:helpers="clr-namespace:_curved__polygon_editor.Helpers"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
+        KeyDown="Window_KeyDown"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=True}">
     <Window.Resources>
         <helpers:EdgeToGeometryConverter x:Key="EdgeToGeometryConverter" />
         <helpers:SubtractConverter x:Key="SubtractConverter" />
+        <Style x:Key="VertexEllipseStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Fill" Value="Red" />
+            <Setter Property="Stroke" Value="DarkRed" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Fill" Value="Gold" />
+                    <Setter Property="Stroke" Value="DarkOrange" />
+                    <Setter Property="StrokeThickness" Value="2" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="EdgePathStyle" TargetType="Path">
             <Setter Property="Stroke" Value="Black" />
             <Setter Property="StrokeThickness" Value="2" />
@@ -31,6 +47,8 @@
 
         <!-- Pasek narzędzi -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="6">
+            <Button Content="Dodaj wierzchołek" Click="AddVertexButton_Click" Margin="0,0,6,0" />
+            <Button Content="Usuń wierzchołek" Click="DeleteVertexButton_Click" Margin="0,0,6,0" />
             <Button Content="Ustaw długość" Click="LengthButton_Click" Margin="0,0,6,0" />
             <Button Content="Usuń ograniczenie" Click="RemoveConstraintButton_Click" Margin="0,0,6,0" />
             <Button Content="Wyczyść zaznaczenie" Click="ClearSelectionButton_Click" />
@@ -87,7 +105,7 @@
                                 </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Ellipse Width="8" Height="8" Fill="Red" Stroke="DarkRed" StrokeThickness="1" Cursor="Hand" />
+                                        <Ellipse Style="{StaticResource VertexEllipseStyle}" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
