@@ -16,6 +16,8 @@ namespace _curved__polygon_editor
     {
         private MainViewModel _vm;
         private Vertex? _draggedVertex = null;
+        private ControlPoint? _draggedControlPoint = null;
+        private Edge? _draggedEdge = null;
         private Polygon? _draggedPolygon = null;
         private Polygon? _draggedWholePolygon = null;
         private Point _lastDragPosition;
@@ -31,7 +33,34 @@ namespace _curved__polygon_editor
         {
             var pos = e.GetPosition((IInputElement)sender);
 
-            // 1. Sprawdź, czy użytkownik kliknął w wierzchołek (tolerancja promienia 10px)
+            // 1. Sprawdź, czy użytkownik kliknął w punkt kontrolny Béziera (tolerancja promienia 10px)
+            const double cpHitRadius = 10.0;
+            foreach (var polygon in _vm.Polygons)
+            {
+                foreach (var edge in polygon.Edges)
+                {
+                    if (edge.EdgeType == EdgeType.Bezier)
+                    {
+                        foreach (var cp in edge.ControlPoints)
+                        {
+                            double dist = (pos - cp.Position).Length;
+                            if (dist <= cpHitRadius)
+                            {
+                                _vm.ClearSelection();
+                                _vm.SelectControlPoint(cp);
+                                _draggedControlPoint = cp;
+                                _draggedEdge = edge;
+                                _draggedPolygon = polygon;
+                                ((IInputElement)sender).CaptureMouse();
+                                e.Handled = true;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Sprawdź, czy użytkownik kliknął w wierzchołek (tolerancja promienia 10px)
             const double vertexHitRadius = 10.0;
             foreach (var polygon in _vm.Polygons)
             {
@@ -51,7 +80,7 @@ namespace _curved__polygon_editor
                 }
             }
 
-            // 2. Jeśli nie wierzchołek, sprawdź czy kliknięto w krawędź
+            // 3. Jeśli nie wierzchołek/punkt kontrolny, sprawdź czy kliknięto w krawędź
             Edge? nearest = null;
             double best = double.MaxValue;
 
@@ -59,7 +88,7 @@ namespace _curved__polygon_editor
             {
                 foreach (var edge in polygon.Edges)
                 {
-                    double distance = DistanceToSegment(pos, edge.StartVertex.Position, edge.EndVertex.Position);
+                    double distance = DistanceToEdge(pos, edge);
                     if (distance < best)
                     {
                         best = distance;
@@ -71,12 +100,13 @@ namespace _curved__polygon_editor
             if (nearest != null && best < 8)
             {
                 _vm.SelectVertex(null);
+                _vm.SelectControlPoint(null);
                 _vm.ToggleSelection(nearest);
                 e.Handled = true;
                 return;
             }
 
-            // 3. Sprawdź, czy kliknięto we wnętrzu wielokąta (przesuwanie całego wielokąta)
+            // 4. Sprawdź, czy kliknięto we wnętrzu wielokąta (przesuwanie całego wielokąta)
             foreach (var polygon in _vm.Polygons)
             {
                 if (ConstraintSolver.IsPointInPolygon(pos, polygon))
@@ -85,26 +115,38 @@ namespace _curved__polygon_editor
                     _lastDragPosition = pos;
                     _vm.ClearSelection();
                     _vm.SelectVertex(null);
+                    _vm.SelectControlPoint(null);
                     ((IInputElement)sender).CaptureMouse();
                     e.Handled = true;
                     return;
                 }
             }
 
-            // 4. Kliknięcie w puste tło - wyczyszczenie zaznaczenia
+            // 5. Kliknięcie w puste tło - wyczyszczenie zaznaczenia
             _vm.ClearSelection();
-            _vm.SelectVertex(null);
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (_draggedVertex != null && e.LeftButton == MouseButtonState.Pressed)
+            if (_draggedControlPoint != null && e.LeftButton == MouseButtonState.Pressed && _draggedPolygon != null && _draggedEdge != null)
+            {
+                var pos = e.GetPosition((IInputElement)sender);
+                ContinuitySolver.OnControlPointMoved(_draggedPolygon, _draggedEdge, _draggedControlPoint, pos);
+                _vm.UpdateConstraintVisuals();
+            }
+            else if (_draggedVertex != null && e.LeftButton == MouseButtonState.Pressed)
             {
                 var pos = e.GetPosition((IInputElement)sender);
 
                 // Wyznaczenie pozycji wierzchołka z uwzględnieniem ograniczeń (ruch po łuku)
                 Point constrainedPos = ConstraintSolver.ConstrainVertexPosition(_draggedPolygon, _draggedVertex, pos);
+                Vector delta = constrainedPos - _draggedVertex.Position;
                 _draggedVertex.Position = constrainedPos;
+
+                if (_draggedPolygon != null)
+                {
+                    ContinuitySolver.OnVertexMoved(_draggedPolygon, _draggedVertex, delta);
+                }
 
                 // Aktualizacja plakietek ograniczeń (jeśli istnieją)
                 _vm.UpdateConstraintVisuals();
@@ -118,6 +160,13 @@ namespace _curved__polygon_editor
                 {
                     v.Position = new Point(v.Position.X + delta.X, v.Position.Y + delta.Y);
                 }
+                foreach (var ed in _draggedWholePolygon.Edges)
+                {
+                    foreach (var cp in ed.ControlPoints)
+                    {
+                        cp.Position = new Point(cp.Position.X + delta.X, cp.Position.Y + delta.Y);
+                    }
+                }
 
                 _lastDragPosition = pos;
                 _vm.UpdateConstraintVisuals();
@@ -126,13 +175,38 @@ namespace _curved__polygon_editor
 
         private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (_draggedVertex != null || _draggedWholePolygon != null)
+            if (_draggedControlPoint != null || _draggedVertex != null || _draggedWholePolygon != null)
             {
+                _draggedControlPoint = null;
+                _draggedEdge = null;
                 _draggedVertex = null;
                 _draggedPolygon = null;
                 _draggedWholePolygon = null;
                 ((IInputElement)sender).ReleaseMouseCapture();
             }
+        }
+
+        private static double DistanceToEdge(Point point, Edge edge)
+        {
+            if (edge.EdgeType == EdgeType.Bezier && edge.ControlPoints.Count >= 2)
+            {
+                var pts = BezierAlgorithm.ComputePointsForwardDifferences(
+                    edge.StartVertex.Position,
+                    edge.ControlPoints[0].Position,
+                    edge.ControlPoints[1].Position,
+                    edge.EndVertex.Position,
+                    20
+                );
+                double minD = double.MaxValue;
+                for (int i = 0; i < pts.Count - 1; i++)
+                {
+                    double d = DistanceToSegment(point, pts[i], pts[i + 1]);
+                    if (d < minD) minD = d;
+                }
+                return minD;
+            }
+
+            return DistanceToSegment(point, edge.StartVertex.Position, edge.EndVertex.Position);
         }
 
         private static double DistanceToSegment(Point point, Point a, Point b)
@@ -273,6 +347,38 @@ namespace _curved__polygon_editor
                 return value;
 
             return null;
+        }
+
+        private void ToggleBezierButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_vm.ToggleBezierForSelectedEdge(out string? error))
+            {
+                MessageBox.Show(error, "Przełączanie Bézier", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void ContinuityG0Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_vm.SetContinuityForSelectedVertex(ContinuityType.G0, out string? error))
+            {
+                MessageBox.Show(error, "Ciągłość G0", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void ContinuityG1Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_vm.SetContinuityForSelectedVertex(ContinuityType.G1, out string? error))
+            {
+                MessageBox.Show(error, "Ciągłość G1", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void ContinuityC1Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_vm.SetContinuityForSelectedVertex(ContinuityType.C1, out string? error))
+            {
+                MessageBox.Show(error, "Ciągłość C1", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
     }
 }

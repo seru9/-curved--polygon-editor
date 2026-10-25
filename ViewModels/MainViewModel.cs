@@ -58,6 +58,28 @@ namespace _curved__polygon_editor.ViewModels
 			}
 		}
 
+		private ControlPoint? _selectedControlPoint;
+		public ControlPoint? SelectedControlPoint
+		{
+			get => _selectedControlPoint;
+			set
+			{
+				if (_selectedControlPoint != value)
+				{
+					if (_selectedControlPoint != null)
+						_selectedControlPoint.IsSelected = false;
+					_selectedControlPoint = value;
+					if (_selectedControlPoint != null)
+						_selectedControlPoint.IsSelected = true;
+				}
+			}
+		}
+
+		public void SelectControlPoint(ControlPoint? cp)
+		{
+			SelectedControlPoint = cp;
+		}
+
 		public void ClearSelection()
 		{
 			foreach (var edge in SelectedEdges)
@@ -66,6 +88,7 @@ namespace _curved__polygon_editor.ViewModels
 			}
 			SelectedEdges.Clear();
 			SelectVertex(null);
+			SelectControlPoint(null);
 		}
 
 		private int _nextPerpendicularPairId = 1;
@@ -271,6 +294,85 @@ namespace _curved__polygon_editor.ViewModels
 			UpdateConstraintVisuals();
 		}
 
+		public bool ToggleBezierForSelectedEdge(out string? errorMessage)
+		{
+			if (SelectedEdges.Count != 1)
+			{
+				errorMessage = "Zaznacz dokładnie jedną krawędź, aby przełączyć tryb Béziera.";
+				return false;
+			}
+
+			var edge = SelectedEdges[0];
+			var polygon = Polygons.FirstOrDefault(p => p.Edges.Contains(edge));
+			if (polygon == null)
+			{
+				errorMessage = "Nie znaleziono wielokąta dla wybranej krawędzi.";
+				return false;
+			}
+
+			if (edge.EdgeType == EdgeType.Line)
+			{
+				// Usunięcie ograniczeń odcinkowych z krawędzi przełączanej na krzywą
+				RemoveEdgeConstraintsAndNotifyPartners(edge);
+
+				edge.EdgeType = EdgeType.Bezier;
+
+				// Ustawienie domyślnej klasy ciągłości C1 (osoby o nazwiskach od L do Z)
+				// chyba że ciągłość została wcześniej jawnie określona przez użytkownika
+				if (!edge.StartVertex.HasExplicitContinuity)
+				{
+					edge.StartVertex.Continuity = ContinuityType.C1;
+				}
+				if (!edge.EndVertex.HasExplicitContinuity)
+				{
+					edge.EndVertex.Continuity = ContinuityType.C1;
+				}
+
+				ContinuitySolver.EnforceContinuityAtVertex(polygon, edge.StartVertex);
+				ContinuitySolver.EnforceContinuityAtVertex(polygon, edge.EndVertex);
+			}
+			else
+			{
+				edge.EdgeType = EdgeType.Line;
+			}
+
+			UpdateConstraintVisuals();
+			errorMessage = null;
+			return true;
+		}
+
+		public bool SetContinuityForSelectedVertex(ContinuityType continuity, out string? errorMessage)
+		{
+			if (SelectedVertex == null)
+			{
+				errorMessage = "Zaznacz wierzchołek, dla którego chcesz zmienić klasę ciągłości.";
+				return false;
+			}
+
+			var polygon = Polygons.FirstOrDefault(p => p.Vertices.Contains(SelectedVertex));
+			if (polygon == null)
+			{
+				errorMessage = "Nie znaleziono wielokąta dla zaznaczonego wierzchołka.";
+				return false;
+			}
+
+			// Sprawdź, czy wierzchołek sąsiaduje z przynajmniej jednym segmentem Béziera
+			var incident = polygon.Edges.Where(e => e.StartVertex == SelectedVertex || e.EndVertex == SelectedVertex).ToList();
+			if (!incident.Any(e => e.EdgeType == EdgeType.Bezier))
+			{
+				errorMessage = "Klasę ciągłości można określić tylko dla wierzchołka sąsiadującego z segmentem Béziera.";
+				return false;
+			}
+
+			SelectedVertex.Continuity = continuity;
+			SelectedVertex.HasExplicitContinuity = true;
+
+			ContinuitySolver.EnforceContinuityAtVertex(polygon, SelectedVertex);
+			UpdateConstraintVisuals();
+			errorMessage = null;
+			return true;
+		}
+
 		public void UpdateConstraintVisuals()
 		{
 			ConstraintVisuals.Clear();
@@ -338,6 +440,45 @@ namespace _curved__polygon_editor.ViewModels
 							visual.Y = center.Y + dir.Y * offset;
 							ConstraintVisuals.Add(visual);
 						}
+					}
+				}
+
+				// Wizualizacja etykiet ciągłości (G0, G1, C1) na wierzchołkach stykających się z Bézierem
+				foreach (var vertex in polygon.Vertices)
+				{
+					bool isAdjacentToBezier = polygon.Edges.Any(e =>
+						(e.StartVertex == vertex || e.EndVertex == vertex) && e.EdgeType == EdgeType.Bezier);
+
+					if (isAdjacentToBezier)
+					{
+						string bg = vertex.Continuity switch
+						{
+							ContinuityType.C1 => "#E8F5E9",
+							ContinuityType.G1 => "#FFFDE7",
+							_ => "#F5F5F5"
+						};
+						string border = vertex.Continuity switch
+						{
+							ContinuityType.C1 => "#4CAF50",
+							ContinuityType.G1 => "#FBC02D",
+							_ => "#9E9E9E"
+						};
+						string fg = vertex.Continuity switch
+						{
+							ContinuityType.C1 => "#2E7D32",
+							ContinuityType.G1 => "#F57F17",
+							_ => "#616161"
+						};
+
+						ConstraintVisuals.Add(new ConstraintVisual
+						{
+							Text = vertex.Continuity.ToString(),
+							X = vertex.X + 10,
+							Y = vertex.Y - 10,
+							Background = bg,
+							BorderBrush = border,
+							Foreground = fg
+						});
 					}
 				}
 			}

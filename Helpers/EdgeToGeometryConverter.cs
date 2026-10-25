@@ -9,20 +9,36 @@ namespace _curved__polygon_editor.Helpers
 {
     public class EdgeToGeometryConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // Tutaj zaimplementuj logikę konwersji Edge -> Geometry
-            // Przykład dla linii prostej:
             if (value is Edge edge)
             {
-                var geometry = new LineGeometry
+                if (edge.EdgeType == EdgeType.Bezier && edge.ControlPoints.Count >= 2)
+                {
+                    var figure = new PathFigure
+                    {
+                        StartPoint = edge.StartVertex.Position,
+                        IsClosed = false,
+                        IsFilled = false
+                    };
+                    figure.Segments.Add(new BezierSegment(
+                        edge.ControlPoints[0].Position,
+                        edge.ControlPoints[1].Position,
+                        edge.EndVertex.Position,
+                        isStroked: true
+                    ));
+                    var geometry = new PathGeometry();
+                    geometry.Figures.Add(figure);
+                    return geometry;
+                }
+
+                return new LineGeometry
                 {
                     StartPoint = new System.Windows.Point(edge.StartVertex.X, edge.StartVertex.Y),
                     EndPoint = new System.Windows.Point(edge.EndVertex.X, edge.EndVertex.Y)
                 };
-                return geometry;
             }
-            return null;
+            return Geometry.Empty;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

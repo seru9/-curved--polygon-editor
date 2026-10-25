@@ -44,6 +44,20 @@ namespace _curved__polygon_editor.Models
 				}
 			}
 		}
+
+		private bool _hasExplicitContinuity;
+		public bool HasExplicitContinuity
+		{
+			get => _hasExplicitContinuity;
+			set
+			{
+				if (_hasExplicitContinuity != value)
+				{
+					_hasExplicitContinuity = value;
+					OnPropertyChanged(nameof(HasExplicitContinuity));
+				}
+			}
+		}
 		public double X => _position.X; // helpful for binding
 		public double Y => _position.Y;
 

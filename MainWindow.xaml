@@ -12,6 +12,7 @@
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=True}">
     <Window.Resources>
         <helpers:EdgeToGeometryConverter x:Key="EdgeToGeometryConverter" />
+        <helpers:EdgeToBezierPolygonGeometryConverter x:Key="EdgeToBezierPolygonGeometryConverter" />
         <helpers:SubtractConverter x:Key="SubtractConverter" />
         <Style x:Key="VertexEllipseStyle" TargetType="Ellipse">
             <Setter Property="Width" Value="8" />
@@ -27,6 +28,26 @@
                     <Setter Property="StrokeThickness" Value="2" />
                 </DataTrigger>
             </Style.Triggers>
+        </Style>
+        <Style x:Key="ControlPointStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Fill" Value="#42A5F5" />
+            <Setter Property="Stroke" Value="#1565C0" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Fill" Value="#FF9800" />
+                    <Setter Property="Stroke" Value="#E65100" />
+                    <Setter Property="StrokeThickness" Value="2" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="BezierPolygonPathStyle" TargetType="Path">
+            <Setter Property="Stroke" Value="#888888" />
+            <Setter Property="StrokeThickness" Value="1.2" />
+            <Setter Property="StrokeDashArray" Value="3 3" />
         </Style>
         <Style x:Key="EdgePathStyle" TargetType="Path">
             <Setter Property="Stroke" Value="Black" />
@@ -52,6 +73,13 @@
             <Button Content="Ustaw długość" Click="LengthButton_Click" Margin="0,0,6,0" />
             <Button Content="Ustaw prostopadłość" Click="PerpendicularButton_Click" Margin="0,0,6,0" />
             <Button Content="Usuń ograniczenie" Click="RemoveConstraintButton_Click" Margin="0,0,6,0" />
+            <Separator Margin="4,0" />
+            <Button Content="Przełącz Bézier" Click="ToggleBezierButton_Click" Margin="0,0,6,0" FontWeight="SemiBold" />
+            <TextBlock Text="Ciągłość:" VerticalAlignment="Center" Margin="4,0,4,0" />
+            <Button Content="G0" Click="ContinuityG0Button_Click" Margin="0,0,3,0" Padding="6,1" />
+            <Button Content="G1" Click="ContinuityG1Button_Click" Margin="0,0,3,0" Padding="6,1" />
+            <Button Content="C1" Click="ContinuityC1Button_Click" Margin="0,0,6,0" Padding="6,1" />
+            <Separator Margin="4,0" />
             <Button Content="Wyczyść zaznaczenie" Click="ClearSelectionButton_Click" />
         </StackPanel>
 
@@ -72,7 +100,7 @@
                     <DataTemplate>
                         <!-- Canvas rozciągnięty na całą dostępną przestrzeń, żeby Canvas.Left/Top działały poprawnie -->
                         <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                            <!-- 1. Krawędzie -->
+                            <!-- 1. Krawędzie (linie, wieloboki Béziera oraz punkty kontrolne) -->
                             <ItemsControl ItemsSource="{Binding Edges}"
                                           Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
                                           Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}">
@@ -83,8 +111,35 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Path Data="{Binding Self, Converter={StaticResource EdgeToGeometryConverter}}"
-                                              Style="{StaticResource EdgePathStyle}" />
+                                        <Canvas>
+                                            <!-- Wielobok kontrolny Béziera (linia przerywana) -->
+                                            <Path Data="{Binding Self, Converter={StaticResource EdgeToBezierPolygonGeometryConverter}}"
+                                                  Style="{StaticResource BezierPolygonPathStyle}" />
+
+                                            <!-- Rzeczywista krawędź (odcinek lub krzywa Béziera) -->
+                                            <Path Data="{Binding Self, Converter={StaticResource EdgeToGeometryConverter}}"
+                                                  Style="{StaticResource EdgePathStyle}" />
+
+                                            <!-- Punkty kontrolne krawędzi Béziera -->
+                                            <ItemsControl ItemsSource="{Binding ControlPoints}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <Canvas />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemContainerStyle>
+                                                    <Style TargetType="ContentPresenter">
+                                                        <Setter Property="Canvas.Left" Value="{Binding X, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" />
+                                                        <Setter Property="Canvas.Top"  Value="{Binding Y, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" />
+                                                    </Style>
+                                                </ItemsControl.ItemContainerStyle>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Ellipse Style="{StaticResource ControlPointStyle}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Canvas>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -116,7 +171,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- 3. Ikony aktywnych ograniczeń -->
+            <!-- 3. Ikony aktywnych ograniczeń i ciągłości -->
             <ItemsControl ItemsSource="{Binding ConstraintVisuals}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

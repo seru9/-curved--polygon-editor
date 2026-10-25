@@ -20,8 +20,6 @@ namespace _curved__polygon_editor.Models
 		private Vertex _startVertex;
 		private Vertex _endVertex;
 		private EdgeType _edgeType;
-		
-		private Point[] _controlPoints;
 		public Vertex StartVertex
 		{
 			get { return _startVertex; }
@@ -64,22 +62,97 @@ namespace _curved__polygon_editor.Models
 				if (_edgeType != value)
 				{
 					_edgeType = value;
+					if (_edgeType == EdgeType.Bezier)
+					{
+						InitializeBezierControlPoints();
+					}
+					else if (_edgeType == EdgeType.Line)
+					{
+						ClearControlPoints();
+					}
 					OnPropertyChanged(nameof(EdgeType));
+					OnPropertyChanged(nameof(Self));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
+
+		public ObservableCollection<ControlPoint> ControlPoints { get; } = new ObservableCollection<ControlPoint>();
+
 		public Point[] ControlPosition
 		{
-			get { return _controlPoints; }
+			get
+			{
+				return ControlPoints.Select(cp => cp.Position).ToArray();
+			}
 			set
 			{
-				if (_controlPoints != value)
+				if (value != null && value.Length >= 2)
 				{
-					_controlPoints = value;
+					if (ControlPoints.Count == 0)
+					{
+						var cp1 = new ControlPoint(value[0], this, 0);
+						var cp2 = new ControlPoint(value[1], this, 1);
+						cp1.PropertyChanged += ControlPoint_PropertyChanged;
+						cp2.PropertyChanged += ControlPoint_PropertyChanged;
+						ControlPoints.Add(cp1);
+						ControlPoints.Add(cp2);
+					}
+					else
+					{
+						ControlPoints[0].Position = value[0];
+						ControlPoints[1].Position = value[1];
+					}
 					OnPropertyChanged(nameof(ControlPosition));
+					OnPropertyChanged(nameof(Self));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
+
+		public void InitializeBezierControlPoints()
+		{
+			if (ControlPoints.Count == 0 && StartVertex != null && EndVertex != null)
+			{
+				Point v0 = StartVertex.Position;
+				Point v3 = EndVertex.Position;
+				Point cp1Pos = new Point(v0.X + (v3.X - v0.X) / 3.0, v0.Y + (v3.Y - v0.Y) / 3.0);
+				Point cp2Pos = new Point(v0.X + 2.0 * (v3.X - v0.X) / 3.0, v0.Y + 2.0 * (v3.Y - v0.Y) / 3.0);
+
+				var cp1 = new ControlPoint(cp1Pos, this, 0);
+				var cp2 = new ControlPoint(cp2Pos, this, 1);
+
+				cp1.PropertyChanged += ControlPoint_PropertyChanged;
+				cp2.PropertyChanged += ControlPoint_PropertyChanged;
+
+				ControlPoints.Add(cp1);
+				ControlPoints.Add(cp2);
+
+				OnPropertyChanged(nameof(ControlPosition));
+				OnPropertyChanged(nameof(Self));
+				OnPropertyChanged(string.Empty);
+			}
+		}
+
+		public void ClearControlPoints()
+		{
+			foreach (var cp in ControlPoints)
+			{
+				cp.PropertyChanged -= ControlPoint_PropertyChanged;
+			}
+			ControlPoints.Clear();
+			OnPropertyChanged(nameof(ControlPosition));
+			OnPropertyChanged(nameof(Self));
+			OnPropertyChanged(string.Empty);
+		}
+
+		private void ControlPoint_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+		{
+			OnPropertyChanged(nameof(ControlPosition));
+			OnPropertyChanged(nameof(Self));
+			OnPropertyChanged(string.Empty);
+		}
+
 		public ObservableCollection<Constraint> Constraints { get; set; } = new ObservableCollection<Constraint>();
 		private bool _isSelected;
 		public bool IsSelected
@@ -101,10 +174,14 @@ namespace _curved__polygon_editor.Models
 			_startVertex = startVertex;
 			_endVertex = endVertex;
 			_edgeType = edgeType;
-			_controlPoints = Array.Empty<Point>();
 
 			_startVertex.PropertyChanged += Vertex_PropertyChanged;
 			_endVertex.PropertyChanged += Vertex_PropertyChanged;
+
+			if (_edgeType == EdgeType.Bezier)
+			{
+				InitializeBezierControlPoints();
+			}
 		}
 
 		private void Vertex_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -118,7 +195,7 @@ namespace _curved__polygon_editor.Models
 
 		public Point GetCenterPoint()
 		{
-			if (this.EdgeType == EdgeType.Bezier && ControlPosition != null && ControlPosition.Length >= 2)
+			if (this.EdgeType == EdgeType.Bezier && ControlPoints.Count >= 2)
 			{
 				// Przybliżony środek krzywej Béziera dla t = 0.5 (De Casteljau / wzór potęgowy)
 				double t = 0.5;
@@ -128,8 +205,11 @@ namespace _curved__polygon_editor.Models
 				double uuu = uu * u;
 				double ttt = tt * t;
 
-				double x = uuu * StartVertex.Position.X + 3 * uu * t * ControlPosition[0].X + 3 * u * tt * ControlPosition[1].X + ttt * EndVertex.Position.X;
-				double y = uuu * StartVertex.Position.Y + 3 * uu * t * ControlPosition[0].Y + 3 * u * tt * ControlPosition[1].Y + ttt * EndVertex.Position.Y;
+				Point p1 = ControlPoints[0].Position;
+				Point p2 = ControlPoints[1].Position;
+
+				double x = uuu * StartVertex.Position.X + 3 * uu * t * p1.X + 3 * u * tt * p2.X + ttt * EndVertex.Position.X;
+				double y = uuu * StartVertex.Position.Y + 3 * uu * t * p1.Y + 3 * u * tt * p2.Y + ttt * EndVertex.Position.Y;
 				return new Point(x, y);
 			}
 			else
