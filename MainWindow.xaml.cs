@@ -31,7 +31,7 @@ namespace _curved__polygon_editor
         {
             var pos = e.GetPosition((IInputElement)sender);
 
-            // 1. Sprawdź, czy użytkownik kliknął w wierzchołek (tolerancja promienia 10px)
+            // user has clicked the vertex (10px radius)
             const double vertexHitRadius = 10.0;
             foreach (var polygon in _vm.Polygons)
             {
@@ -51,7 +51,7 @@ namespace _curved__polygon_editor
                 }
             }
 
-            // 2. Jeśli nie wierzchołek, sprawdź czy kliknięto w krawędź
+            // check if the edge was clicked
             Edge? nearest = null;
             double best = double.MaxValue;
 
@@ -76,7 +76,7 @@ namespace _curved__polygon_editor
                 return;
             }
 
-            // 3. Sprawdź, czy kliknięto we wnętrzu wielokąta (przesuwanie całego wielokąta)
+            // inside polygon clicked?
             foreach (var polygon in _vm.Polygons)
             {
                 if (ConstraintSolver.IsPointInPolygon(pos, polygon))
@@ -91,25 +91,27 @@ namespace _curved__polygon_editor
                 }
             }
 
-            // 4. Kliknięcie w puste tło - wyczyszczenie zaznaczenia
+            // unmark =  empty space
             _vm.ClearSelection();
             _vm.SelectVertex(null);
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (_draggedVertex != null && e.LeftButton == MouseButtonState.Pressed)
-            {
-                var pos = e.GetPosition((IInputElement)sender);
+			if (_draggedVertex != null && e.LeftButton == MouseButtonState.Pressed)
+			{
+				var pos = e.GetPosition((IInputElement)sender);
 
-                // Wyznaczenie pozycji wierzchołka z uwzględnieniem ograniczeń (ruch po łuku)
-                Point constrainedPos = ConstraintSolver.ConstrainVertexPosition(_draggedPolygon, _draggedVertex, pos);
-                _draggedVertex.Position = constrainedPos;
+				// draggedVertex goes the way the cursor go
+				_draggedVertex.Position = pos;
 
-                // Aktualizacja plakietek ograniczeń (jeśli istnieją)
-                _vm.UpdateConstraintVisuals();
-            }
-            else if (_draggedWholePolygon != null && e.LeftButton == MouseButtonState.Pressed)
+				// solver has to find the position of other vertexes
+				ConstraintSolver.Solve(_draggedPolygon, _draggedVertex);
+
+				// update visual
+				_vm.UpdateConstraintVisuals();
+			}
+			else if (_draggedWholePolygon != null && e.LeftButton == MouseButtonState.Pressed)
             {
                 var pos = e.GetPosition((IInputElement)sender);
                 Vector delta = pos - _lastDragPosition;

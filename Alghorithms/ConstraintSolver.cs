@@ -7,7 +7,8 @@ namespace _curved__polygon_editor.Algorithms
 {
 	public static class ConstraintSolver
 	{
-		public static void Solve(IEnumerable<Polygon> polygons, int iterations = 5)
+		// Dodajemy opcjonalny parametr pinnedVertex i zwiększamy domyślną liczbę iteracji dla lepszej zbieżności
+		public static void Solve(IEnumerable<Polygon> polygons, Vertex? pinnedVertex = null, int iterations = 15)
 		{
 			for (int it = 0; it < iterations; it++)
 			{
@@ -21,11 +22,11 @@ namespace _curved__polygon_editor.Algorithms
 
 							if (constraint is LengthConstraint lenConstraint)
 							{
-								ApplyLengthConstraint(edge, lenConstraint.TargetLength);
+								ApplyLengthConstraint(edge, lenConstraint.TargetLength, pinnedVertex);
 							}
 							else if (constraint is PerpendicularConstraint perpConstraint)
 							{
-								ApplyPerpendicularConstraint(edge, perpConstraint.TargetEdge);
+								ApplyPerpendicularConstraint(edge, perpConstraint.TargetEdge, pinnedVertex);
 							}
 						}
 					}
@@ -33,7 +34,14 @@ namespace _curved__polygon_editor.Algorithms
 			}
 		}
 
-		public static void ApplyLengthConstraint(Edge edge, double targetLength)
+		// Przeciążenie dla pojedynczego wielokąta (wygodne przy przeciąganiu wierzchołka)
+		public static void Solve(Polygon? polygon, Vertex? pinnedVertex = null, int iterations = 15)
+		{
+			if (polygon == null) return;
+			Solve(new[] { polygon }, pinnedVertex, iterations);
+		}
+
+		public static void ApplyLengthConstraint(Edge edge, double targetLength, Vertex? pinnedVertex = null)
 		{
 			if (edge.StartVertex == null || edge.EndVertex == null) return;
 
@@ -47,97 +55,23 @@ namespace _curved__polygon_editor.Algorithms
 			v.Normalize();
 			Vector targetVector = v * targetLength;
 
-			Point center = new Point((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
-
-			// Dzielimy zmianę równomiernie na oba końce krawędzi
-			edge.StartVertex.Position = new Point(center.X - targetVector.X / 2.0, center.Y - targetVector.Y / 2.0);
-			edge.EndVertex.Position = new Point(center.X + targetVector.X / 2.0, center.Y + targetVector.Y / 2.0);
-		}
-
-		public static Point ConstrainVertexPosition(Polygon? polygon, Vertex draggedVertex, Point targetPos)
-		{
-			if (polygon == null) return targetPos;
-
-			// Znajdź krawędzie incydentne do przeciąganego wierzchołka posiadające aktywny LengthConstraint
-			var lengthConstraints = new List<(Edge edge, LengthConstraint constraint, Vertex anchor)>();
-			foreach (var edge in polygon.Edges)
+			// pinnedVertex's one of the edge (where pinnedVertex is StartVertex) other vertex has to follow other vertex
+			if (edge.StartVertex == pinnedVertex)
 			{
-				if (edge.StartVertex == draggedVertex || edge.EndVertex == draggedVertex)
-				{
-					foreach (var c in edge.Constraints)
-					{
-						if (c is LengthConstraint lc && lc.IsActive)
-						{
-							Vertex anchor = (edge.StartVertex == draggedVertex) ? edge.EndVertex : edge.StartVertex;
-							lengthConstraints.Add((edge, lc, anchor));
-							break;
-						}
-					}
-				}
+				edge.EndVertex.Position = new Point(p1.X + targetVector.X, p1.Y + targetVector.Y);
 			}
-
-			// Przypadek 0: Brak ograniczeń długości na incydentnych krawędziach
-			if (lengthConstraints.Count == 0)
+			// EndVertex jest przeciągany (zablokowany w miejscu kursora) -> przesuwamy tylko StartVertex
+			else if (edge.EndVertex == pinnedVertex)
 			{
-				return targetPos;
+				edge.StartVertex.Position = new Point(p2.X - targetVector.X, p2.Y - targetVector.Y);
 			}
-
-			// Przypadek 1: Dokładnie 1 ograniczenie długości -> ruch po łuku (okręgu o promieniu L wokół anchor)
-			if (lengthConstraints.Count == 1)
+			// vertexes that are not adjacent to adjacent edge of the vertex
+			else
 			{
-				var item = lengthConstraints[0];
-				Point anchorPos = item.anchor.Position;
-				Vector u = new Vector(targetPos.X - anchorPos.X, targetPos.Y - anchorPos.Y);
-				if (u.Length < 0.0001)
-				{
-					return draggedVertex.Position;
-				}
-
-				u.Normalize();
-				double l = item.constraint.TargetLength;
-				return new Point(anchorPos.X + u.X * l, anchorPos.Y + u.Y * l);
+				Point center = new Point((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
+				edge.StartVertex.Position = new Point(center.X - targetVector.X / 2.0, center.Y - targetVector.Y / 2.0);
+				edge.EndVertex.Position = new Point(center.X + targetVector.X / 2.0, center.Y + targetVector.Y / 2.0);
 			}
-
-			// Przypadek 2: 2 ograniczenia długości -> przecięcie dwóch okręgów
-			var c1 = lengthConstraints[0];
-			var c2 = lengthConstraints[1];
-
-			Point pAnchor1 = c1.anchor.Position;
-			Point pAnchor2 = c2.anchor.Position;
-			double r1 = c1.constraint.TargetLength;
-			double r2 = c2.constraint.TargetLength;
-
-			Vector dVec = new Vector(pAnchor2.X - pAnchor1.X, pAnchor2.Y - pAnchor1.Y);
-			double d = dVec.Length;
-
-			if (d < 0.0001)
-			{
-				return draggedVertex.Position;
-			}
-
-			// Sprawdź czy okręgi się przecinają
-			if (d > r1 + r2 || d < System.Math.Abs(r1 - r2))
-			{
-				// Okręgi się nie przecinają - zachowaj aktualną pozycję, by nie łamać więzów
-				return draggedVertex.Position;
-			}
-
-			double a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
-			double hSquared = r1 * r1 - a * a;
-			double h = hSquared > 0 ? System.Math.Sqrt(hSquared) : 0.0;
-
-			Point p0 = new Point(pAnchor1.X + (a / d) * dVec.X, pAnchor1.Y + (a / d) * dVec.Y);
-
-			// Wektor prostopadły
-			Vector perp = new Vector(-dVec.Y / d, dVec.X / d);
-
-			Point i1 = new Point(p0.X + h * perp.X, p0.Y + h * perp.Y);
-			Point i2 = new Point(p0.X - h * perp.X, p0.Y - h * perp.Y);
-
-			double dist1 = (targetPos - i1).Length;
-			double dist2 = (targetPos - i2).Length;
-
-			return dist1 <= dist2 ? i1 : i2;
 		}
 
 		public static bool IsPointInPolygon(Point p, Polygon polygon)
@@ -161,13 +95,12 @@ namespace _curved__polygon_editor.Algorithms
 			return inside;
 		}
 
-		private static void ApplyPerpendicularConstraint(Edge edge1, Edge edge2)
+		private static void ApplyPerpendicularConstraint(Edge edge1, Edge edge2, Vertex? pinnedVertex = null)
 		{
-			// Logika wymuszenia prostopadłości (iloczyn skalarny wektorów obu krawędzi = 0)
 			if (edge1.StartVertex == null || edge1.EndVertex == null || edge2.StartVertex == null || edge2.EndVertex == null)
 				return;
 
-			// Tutaj w kolejnym kroku dopiszemy matematykę obrotu/korekty kąta prostopadłego
+			// Tutaj w kolejnym kroku dopiszemy matematykę obrotu/korekty kąta prostopadłego z uwzględnieniem pinnedVertex
 		}
 	}
 }
