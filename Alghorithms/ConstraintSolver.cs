@@ -97,10 +97,100 @@ namespace _curved__polygon_editor.Algorithms
 
 		private static void ApplyPerpendicularConstraint(Edge edge1, Edge edge2, Vertex? pinnedVertex = null)
 		{
-			if (edge1.StartVertex == null || edge1.EndVertex == null || edge2.StartVertex == null || edge2.EndVertex == null)
+			if (edge1.StartVertex == null || edge1.EndVertex == null ||
+				edge2.StartVertex == null || edge2.EndVertex == null)
 				return;
 
-			// Tutaj w kolejnym kroku dopiszemy matematykę obrotu/korekty kąta prostopadłego z uwzględnieniem pinnedVertex
+			if (edge1 == edge2) return;
+			// direction vectors
+			Vector v1 = edge1.EndVertex.Position - edge1.StartVertex.Position;
+			Vector v2 = edge2.EndVertex.Position - edge2.StartVertex.Position;
+
+			if (v1.LengthSquared < 0.0001 || v2.LengthSquared < 0.0001)
+				return;
+
+			// AngleBetween the direction vectors
+			double angle = Vector.AngleBetween(v1, v2);
+
+			// Choosing 90 degrees or -90 degrees
+			double targetAngle = angle >= 0 ? 90.0 : -90.0;
+			double diff = targetAngle - angle; // diff - how much degrees to rotate
+			if (System.Math.Abs(diff) < 0.01)
+				return;
+
+			// checking if any of adjacent vertex is being rotated
+			bool edge1HasPinned = (edge1.StartVertex == pinnedVertex || edge1.EndVertex == pinnedVertex) && pinnedVertex != null;
+			bool edge2HasPinned = (edge2.StartVertex == pinnedVertex || edge2.EndVertex == pinnedVertex) && pinnedVertex != null;
+
+			if (edge1HasPinned && !edge2HasPinned)
+			{
+				// if edge 1 is being rotated - we rotate edge 2
+				RotateEdge(edge2, diff, pinnedVertex, sharedWith: edge1);
+			}
+			else if (edge2HasPinned && !edge1HasPinned)
+			{
+				// if edge 2 is being rotated - we rotate edge 1
+				RotateEdge(edge1, -diff, pinnedVertex, sharedWith: edge2);
+			}
+			else
+			{
+				// if both are rotated then we need to rotate both (if we drag the vertex that is adjacent to perpendicular edges
+				RotateEdge(edge1, -diff / 2.0, pinnedVertex, sharedWith: edge2);
+				RotateEdge(edge2, diff / 2.0, pinnedVertex, sharedWith: edge1);
+			}
+		}
+
+		private static void RotateEdge(Edge edge, double angleDegrees, Vertex? pinnedVertex, Edge? sharedWith = null)
+		{
+			Point p1 = edge.StartVertex.Position;
+			Point p2 = edge.EndVertex.Position;
+
+			double rad = angleDegrees * System.Math.PI / 180.0;
+			double cos = System.Math.Cos(rad);
+			double sin = System.Math.Sin(rad);
+
+			// edge can be rotated around StartVertex (like an anchor)
+			if (edge.StartVertex == pinnedVertex)
+			{
+				edge.EndVertex.Position = RotatePoint(p2, p1, cos, sin);
+				return;
+			}
+
+			// or can be rotated around EdgeVertex
+			if (edge.EndVertex == pinnedVertex)
+			{
+				edge.StartVertex.Position = RotatePoint(p1, p2, cos, sin);
+				return;
+			}
+
+			if (sharedWith != null)
+			{
+				if (edge.StartVertex == sharedWith.StartVertex || edge.StartVertex == sharedWith.EndVertex)
+				{
+					edge.EndVertex.Position = RotatePoint(p2, p1, cos, sin);
+					return;
+				}
+				if (edge.EndVertex == sharedWith.StartVertex || edge.EndVertex == sharedWith.EndVertex)
+				{
+					edge.StartVertex.Position = RotatePoint(p1, p2, cos, sin);
+					return;
+				}
+			}
+
+			Point center = new Point((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
+			edge.StartVertex.Position = RotatePoint(p1, center, cos, sin);
+			edge.EndVertex.Position = RotatePoint(p2, center, cos, sin);
+		}
+
+		private static Point RotatePoint(Point point, Point pivot, double cos, double sin)
+		{
+			double dx = point.X - pivot.X;
+			double dy = point.Y - pivot.Y;
+
+			return new Point(
+				pivot.X + (dx * cos - dy * sin),
+				pivot.Y + (dx * sin + dy * cos)
+			);
 		}
 	}
 }

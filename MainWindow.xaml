@@ -11,8 +11,10 @@
         KeyDown="Window_KeyDown"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=True}">
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <helpers:EdgeToGeometryConverter x:Key="EdgeToGeometryConverter" />
         <helpers:SubtractConverter x:Key="SubtractConverter" />
+
         <Style x:Key="VertexEllipseStyle" TargetType="Ellipse">
             <Setter Property="Width" Value="8" />
             <Setter Property="Height" Value="8" />
@@ -28,6 +30,17 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Styl dla punktów kontrolnych Beziera (V1, V2) -->
+        <Style x:Key="ControlPointEllipseStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Fill" Value="LimeGreen" />
+            <Setter Property="Stroke" Value="DarkGreen" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
         <Style x:Key="EdgePathStyle" TargetType="Path">
             <Setter Property="Stroke" Value="Black" />
             <Setter Property="StrokeThickness" Value="2" />
@@ -51,6 +64,8 @@
             <Button Content="Usuń wierzchołek" Click="DeleteVertexButton_Click" Margin="0,0,6,0" />
             <Button Content="Ustaw długość" Click="LengthButton_Click" Margin="0,0,6,0" />
             <Button Content="Usuń ograniczenie" Click="RemoveConstraintButton_Click" Margin="0,0,6,0" />
+            <Button Content="Ustaw prostopadłość" Click="PerpendicularButton_Click" Margin="0,0,6,0" />
+            <Button Content="Przełącz Bezier" Click="BezierButton_Click" Margin="0,0,6,0" />
             <Button Content="Wyczyść zaznaczenie" Click="ClearSelectionButton_Click" />
         </StackPanel>
 
@@ -71,7 +86,8 @@
                     <DataTemplate>
                         <!-- Canvas rozciągnięty na całą dostępną przestrzeń, żeby Canvas.Left/Top działały poprawnie -->
                         <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                            <!-- 1. Krawędzie -->
+
+                            <!-- 1. Krawędzie oraz ich punkty kontrolne Beziera -->
                             <ItemsControl ItemsSource="{Binding Edges}"
                                           Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
                                           Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}">
@@ -82,8 +98,37 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Path Data="{Binding Self, Converter={StaticResource EdgeToGeometryConverter}}"
-                                              Style="{StaticResource EdgePathStyle}" />
+                                        <Canvas>
+                                            <!-- Wielobok pomocniczy Beziera i punkty kontrolne (widoczne tylko gdy IsBezier == true) -->
+                                            <Canvas Visibility="{Binding IsBezier, Converter={StaticResource BoolToVis}}">
+                                                <!-- Linia V0 -> V1 -->
+                                                <Line X1="{Binding StartVertex.X}" Y1="{Binding StartVertex.Y}"
+                                                      X2="{Binding ControlPoint1.X}" Y2="{Binding ControlPoint1.Y}"
+                                                      Stroke="Gray" StrokeThickness="1" StrokeDashArray="4 2" />
+                                                <!-- Linia V1 -> V2 -->
+                                                <Line X1="{Binding ControlPoint1.X}" Y1="{Binding ControlPoint1.Y}"
+                                                      X2="{Binding ControlPoint2.X}" Y2="{Binding ControlPoint2.Y}"
+                                                      Stroke="LightGray" StrokeThickness="1" StrokeDashArray="2 2" />
+                                                <!-- Linia V2 -> V3 -->
+                                                <Line X1="{Binding ControlPoint2.X}" Y1="{Binding ControlPoint2.Y}"
+                                                      X2="{Binding EndVertex.X}" Y2="{Binding EndVertex.Y}"
+                                                      Stroke="Gray" StrokeThickness="1" StrokeDashArray="4 2" />
+
+                                                <!-- Punkt kontrolny V1 -->
+                                                <Ellipse Style="{StaticResource ControlPointEllipseStyle}"
+                                                         Canvas.Left="{Binding ControlPoint1.X, Converter={StaticResource SubtractConverter}, ConverterParameter=4}"
+                                                         Canvas.Top="{Binding ControlPoint1.Y, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" />
+
+                                                <!-- Punkt kontrolny V2 -->
+                                                <Ellipse Style="{StaticResource ControlPointEllipseStyle}"
+                                                         Canvas.Left="{Binding ControlPoint2.X, Converter={StaticResource SubtractConverter}, ConverterParameter=4}"
+                                                         Canvas.Top="{Binding ControlPoint2.Y, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" />
+                                            </Canvas>
+
+                                            <!-- Główna linia / krzywa Beziera -->
+                                            <Path Data="{Binding Self, Converter={StaticResource EdgeToGeometryConverter}}"
+                                                  Style="{StaticResource EdgePathStyle}" />
+                                        </Canvas>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

@@ -9,258 +9,340 @@ using _curved__polygon_editor.ViewModels;
 
 namespace _curved__polygon_editor
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
-    {
-        private MainViewModel _vm;
-        private Vertex? _draggedVertex = null;
-        private Polygon? _draggedPolygon = null;
-        private Polygon? _draggedWholePolygon = null;
-        private Point _lastDragPosition;
+	/// <summary>
+	/// Interaction logic for MainWindow.xaml
+	/// </summary>
+	public partial class MainWindow : Window
+	{
+		private MainViewModel _vm;
+		private Vertex? _draggedVertex = null;
+		private Polygon? _draggedPolygon = null;
+		private Polygon? _draggedWholePolygon = null;
+		private Point _lastDragPosition;
 
-        public MainWindow()
-        {
-            InitializeComponent();
-            _vm = new MainViewModel();
-            DataContext = _vm;
-        }
+		public MainWindow()
+		{
+			InitializeComponent();
+			_vm = new MainViewModel();
+			DataContext = _vm;
+		}
 
-        private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            var pos = e.GetPosition((IInputElement)sender);
+		private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+		{
+			var pos = e.GetPosition((IInputElement)sender);
 
-            // user has clicked the vertex (10px radius)
-            const double vertexHitRadius = 10.0;
-            foreach (var polygon in _vm.Polygons)
-            {
-                foreach (var vertex in polygon.Vertices)
-                {
-                    double dist = (pos - vertex.Position).Length;
-                    if (dist <= vertexHitRadius)
-                    {
-                        _vm.ClearSelection();
-                        _vm.SelectVertex(vertex);
-                        _draggedVertex = vertex;
-                        _draggedPolygon = polygon;
-                        ((IInputElement)sender).CaptureMouse();
-                        e.Handled = true;
-                        return;
-                    }
-                }
-            }
+			// 1a. Sprawdź, czy użytkownik kliknął w główny wierzchołek wielokąta (promień 10px)
+			const double vertexHitRadius = 10.0;
+			foreach (var polygon in _vm.Polygons)
+			{
+				foreach (var vertex in polygon.Vertices)
+				{
+					double dist = (pos - vertex.Position).Length;
+					if (dist <= vertexHitRadius)
+					{
+						_vm.ClearSelection();
+						_vm.SelectVertex(vertex);
+						_draggedVertex = vertex;
+						_draggedPolygon = polygon;
+						((IInputElement)sender).CaptureMouse();
+						e.Handled = true;
+						return;
+					}
+				}
+			}
 
-            // check if the edge was clicked
-            Edge? nearest = null;
-            double best = double.MaxValue;
+			// 1b. Sprawdź, czy użytkownik kliknął w punkt kontrolny krzywej Béziera (V1 lub V2)
+			foreach (var polygon in _vm.Polygons)
+			{
+				foreach (var edge in polygon.Edges)
+				{
+					if (!edge.IsBezier) continue;
 
-            foreach (var polygon in _vm.Polygons)
-            {
-                foreach (var edge in polygon.Edges)
-                {
-                    double distance = DistanceToSegment(pos, edge.StartVertex.Position, edge.EndVertex.Position);
-                    if (distance < best)
-                    {
-                        best = distance;
-                        nearest = edge;
-                    }
-                }
-            }
+					foreach (var cp in new[] { edge.ControlPoint1, edge.ControlPoint2 })
+					{
+						if (cp != null && (pos - cp.Position).Length <= vertexHitRadius)
+						{
+							_vm.ClearSelection();
+							_vm.SelectVertex(null);
+							_draggedVertex = cp;
+							_draggedPolygon = polygon;
+							((IInputElement)sender).CaptureMouse();
+							e.Handled = true;
+							return;
+						}
+					}
+				}
+			}
 
-            if (nearest != null && best < 8)
-            {
-                _vm.SelectVertex(null);
-                _vm.ToggleSelection(nearest);
-                e.Handled = true;
-                return;
-            }
+			// 2. Sprawdź, czy kliknięto w krawędź
+			Edge? nearest = null;
+			double best = double.MaxValue;
 
-            // inside polygon clicked?
-            foreach (var polygon in _vm.Polygons)
-            {
-                if (ConstraintSolver.IsPointInPolygon(pos, polygon))
-                {
-                    _draggedWholePolygon = polygon;
-                    _lastDragPosition = pos;
-                    _vm.ClearSelection();
-                    _vm.SelectVertex(null);
-                    ((IInputElement)sender).CaptureMouse();
-                    e.Handled = true;
-                    return;
-                }
-            }
+			foreach (var polygon in _vm.Polygons)
+			{
+				foreach (var edge in polygon.Edges)
+				{
+					double distance = DistanceToSegment(pos, edge.StartVertex.Position, edge.EndVertex.Position);
+					if (distance < best)
+					{
+						best = distance;
+						nearest = edge;
+					}
+				}
+			}
 
-            // unmark =  empty space
-            _vm.ClearSelection();
-            _vm.SelectVertex(null);
-        }
+			if (nearest != null && best < 8)
+			{
+				_vm.SelectVertex(null);
+				_vm.ToggleSelection(nearest);
+				e.Handled = true;
+				return;
+			}
 
-        private void Canvas_MouseMove(object sender, MouseEventArgs e)
-        {
+			// 3. Sprawdź, czy kliknięto we wnętrzu wielokąta
+			foreach (var polygon in _vm.Polygons)
+			{
+				if (ConstraintSolver.IsPointInPolygon(pos, polygon))
+				{
+					_draggedWholePolygon = polygon;
+					_lastDragPosition = pos;
+					_vm.ClearSelection();
+					_vm.SelectVertex(null);
+					((IInputElement)sender).CaptureMouse();
+					e.Handled = true;
+					return;
+				}
+			}
+
+			// 4. Kliknięcie w pustą przestrzeń = odznaczenie
+			_vm.ClearSelection();
+			_vm.SelectVertex(null);
+		}
+
+		private void Canvas_MouseMove(object sender, MouseEventArgs e)
+		{
 			if (_draggedVertex != null && e.LeftButton == MouseButtonState.Pressed)
 			{
 				var pos = e.GetPosition((IInputElement)sender);
 
-				// draggedVertex goes the way the cursor go
+				// Przeciągany wierzchołek (lub punkt kontrolny V1/V2) podąża za kursorem
 				_draggedVertex.Position = pos;
 
-				// solver has to find the position of other vertexes
+				// Solver dopasowuje pozostałe wierzchołki wielokąta
 				ConstraintSolver.Solve(_draggedPolygon, _draggedVertex);
 
-				// update visual
+				// Aktualizacja ikon ograniczeń
 				_vm.UpdateConstraintVisuals();
 			}
 			else if (_draggedWholePolygon != null && e.LeftButton == MouseButtonState.Pressed)
-            {
-                var pos = e.GetPosition((IInputElement)sender);
-                Vector delta = pos - _lastDragPosition;
+			{
+				var pos = e.GetPosition((IInputElement)sender);
+				Vector delta = pos - _lastDragPosition;
 
-                foreach (var v in _draggedWholePolygon.Vertices)
-                {
-                    v.Position = new Point(v.Position.X + delta.X, v.Position.Y + delta.Y);
-                }
+				foreach (var v in _draggedWholePolygon.Vertices)
+				{
+					v.Position = new Point(v.Position.X + delta.X, v.Position.Y + delta.Y);
+				}
 
-                _lastDragPosition = pos;
-                _vm.UpdateConstraintVisuals();
-            }
-        }
+				// Przesunięcie punktów kontrolnych krzywych Béziera razem z wielokątem
+				foreach (var edge in _draggedWholePolygon.Edges)
+				{
+					if (edge.IsBezier)
+					{
+						if (edge.ControlPoint1 != null)
+							edge.ControlPoint1.Position = new Point(edge.ControlPoint1.Position.X + delta.X, edge.ControlPoint1.Position.Y + delta.Y);
+						if (edge.ControlPoint2 != null)
+							edge.ControlPoint2.Position = new Point(edge.ControlPoint2.Position.X + delta.X, edge.ControlPoint2.Position.Y + delta.Y);
+					}
+				}
 
-        private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (_draggedVertex != null || _draggedWholePolygon != null)
-            {
-                _draggedVertex = null;
-                _draggedPolygon = null;
-                _draggedWholePolygon = null;
-                ((IInputElement)sender).ReleaseMouseCapture();
-            }
-        }
+				_lastDragPosition = pos;
+				_vm.UpdateConstraintVisuals();
+			}
+		}
 
-        private static double DistanceToSegment(Point point, Point a, Point b)
-        {
-            double dx = b.X - a.X;
-            double dy = b.Y - a.Y;
+		private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+		{
+			if (_draggedVertex != null || _draggedWholePolygon != null)
+			{
+				_draggedVertex = null;
+				_draggedPolygon = null;
+				_draggedWholePolygon = null;
+				((IInputElement)sender).ReleaseMouseCapture();
+			}
+		}
 
-            if (dx == 0 && dy == 0)
-                return (point - a).Length;
+		private static double DistanceToSegment(Point point, Point a, Point b)
+		{
+			double dx = b.X - a.X;
+			double dy = b.Y - a.Y;
 
-            double t = ((point.X - a.X) * dx + (point.Y - a.Y) * dy) / (dx * dx + dy * dy);
-            t = Math.Clamp(t, 0, 1);
+			if (dx == 0 && dy == 0)
+				return (point - a).Length;
 
-            var projection = new Point(a.X + t * dx, a.Y + t * dy);
-            return (point - projection).Length;
-        }
+			double t = ((point.X - a.X) * dx + (point.Y - a.Y) * dy) / (dx * dx + dy * dy);
+			t = Math.Clamp(t, 0, 1);
 
-        private void AddVertexButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_vm.AddVertexInMiddleOfSelectedEdge(out string? error))
-            {
-                MessageBox.Show(error, "Dodawanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
+			var projection = new Point(a.X + t * dx, a.Y + t * dy);
+			return (point - projection).Length;
+		}
 
-        private void DeleteVertexButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_vm.DeleteSelectedVertex(out string? error))
-            {
-                MessageBox.Show(error, "Usuwanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
+		private void AddVertexButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (!_vm.AddVertexInMiddleOfSelectedEdge(out string? error))
+			{
+				MessageBox.Show(error, "Dodawanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
+			}
+		}
 
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Delete)
-            {
-                if (_vm.SelectedVertex != null)
-                {
-                    if (!_vm.DeleteSelectedVertex(out string? error))
-                    {
-                        MessageBox.Show(error, "Usuwanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    e.Handled = true;
-                }
-            }
-        }
+		private void DeleteVertexButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (!_vm.DeleteSelectedVertex(out string? error))
+			{
+				MessageBox.Show(error, "Usuwanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
+			}
+		}
 
-        private void LengthButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_vm.SelectedEdges.Count != 1)
-            {
-                MessageBox.Show("Zaznacz dokładnie jedną krawędź.", "Długość krawędzi", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
+		private void Window_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.Key == Key.Delete)
+			{
+				if (_vm.SelectedVertex != null)
+				{
+					if (!_vm.DeleteSelectedVertex(out string? error))
+					{
+						MessageBox.Show(error, "Usuwanie wierzchołka", MessageBoxButton.OK, MessageBoxImage.Information);
+					}
+					e.Handled = true;
+				}
+			}
+		}
 
-            var edge = _vm.SelectedEdges[0];
-            double current = GetEdgeLength(edge);
-            double? result = PromptLength(current);
-            if (result.HasValue)
-                _vm.AddLengthConstraint(edge, result.Value);
-        }
+		private void LengthButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (_vm.SelectedEdges.Count != 1)
+			{
+				MessageBox.Show("Zaznacz dokładnie jedną krawędź.", "Długość krawędzi", MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
 
-        private void ClearSelectionButton_Click(object sender, RoutedEventArgs e)
-        {
-            _vm.ClearSelection();
-        }
+			var edge = _vm.SelectedEdges[0];
+			double current = GetEdgeLength(edge);
+			double? result = PromptLength(current);
+			if (result.HasValue)
+				_vm.AddLengthConstraint(edge, result.Value);
+		}
 
-        private void RemoveConstraintButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_vm.SelectedEdges.Count == 0)
-            {
-                MessageBox.Show("Zaznacz krawędź, z której chcesz usunąć ograniczenie.", "Usuń ograniczenie", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
+		private void ClearSelectionButton_Click(object sender, RoutedEventArgs e)
+		{
+			_vm.ClearSelection();
+		}
 
-            _vm.RemoveConstraintsFromSelected();
-        }
+		private void RemoveConstraintButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (_vm.SelectedEdges.Count == 0)
+			{
+				MessageBox.Show("Zaznacz krawędź, z której chcesz usunąć ograniczenie.", "Usuń ograniczenie", MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
 
-        private static double GetEdgeLength(Edge edge)
-        {
-            var start = edge.StartVertex.Position;
-            var end = edge.EndVertex.Position;
-            return new Vector(end.X - start.X, end.Y - start.Y).Length;
-        }
+			_vm.RemoveConstraintsFromSelected();
+		}
 
-        private double? PromptLength(double defaultValue)
-        {
-            var win = new Window
-            {
-                Title = "Długość krawędzi",
-                Width = 320,
-                SizeToContent = SizeToContent.Height,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = this,
-                ResizeMode = ResizeMode.NoResize
-            };
+		private static double GetEdgeLength(Edge edge)
+		{
+			var start = edge.StartVertex.Position;
+			var end = edge.EndVertex.Position;
+			return new Vector(end.X - start.X, end.Y - start.Y).Length;
+		}
 
-            var textBox = new TextBox
-            {
-                Text = defaultValue.ToString("0.##", CultureInfo.InvariantCulture),
-                Margin = new Thickness(10),
-                VerticalContentAlignment = VerticalAlignment.Center
-            };
+		private double? PromptLength(double defaultValue)
+		{
+			var win = new Window
+			{
+				Title = "Długość krawędzi",
+				Width = 320,
+				SizeToContent = SizeToContent.Height,
+				WindowStartupLocation = WindowStartupLocation.CenterOwner,
+				Owner = this,
+				ResizeMode = ResizeMode.NoResize
+			};
 
-            var ok = new Button { Content = "OK", Width = 80, Margin = new Thickness(10, 0, 5, 0), IsDefault = true };
-            var cancel = new Button { Content = "Anuluj", Width = 80, Margin = new Thickness(5, 0, 10, 0), IsCancel = true };
+			var textBox = new TextBox
+			{
+				Text = defaultValue.ToString("0.##", CultureInfo.InvariantCulture),
+				Margin = new Thickness(10),
+				VerticalContentAlignment = VerticalAlignment.Center
+			};
 
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 0, 10) };
-            buttons.Children.Add(ok);
-            buttons.Children.Add(cancel);
+			var ok = new Button { Content = "OK", Width = 80, Margin = new Thickness(10, 0, 5, 0), IsDefault = true };
+			var cancel = new Button { Content = "Anuluj", Width = 80, Margin = new Thickness(5, 0, 10, 0), IsCancel = true };
 
-            var root = new StackPanel();
-            root.Children.Add(textBox);
-            root.Children.Add(buttons);
-            win.Content = root;
+			var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 0, 10) };
+			buttons.Children.Add(ok);
+			buttons.Children.Add(cancel);
 
-            ok.Click += (s, e) => win.DialogResult = true;
-            win.Loaded += (s, e) => { textBox.Focus(); textBox.SelectAll(); };
+			var root = new StackPanel();
+			root.Children.Add(textBox);
+			root.Children.Add(buttons);
+			win.Content = root;
 
-            if (win.ShowDialog() == true &&
-                double.TryParse(textBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
-                value > 0)
-                return value;
+			ok.Click += (s, e) => win.DialogResult = true;
+			win.Loaded += (s, e) => { textBox.Focus(); textBox.SelectAll(); };
 
-            return null;
-        }
-    }
+			if (win.ShowDialog() == true &&
+				double.TryParse(textBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
+				value > 0)
+				return value;
+
+			return null;
+		}
+
+		private void PerpendicularButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (_vm.SelectedEdges.Count != 2)
+			{
+				MessageBox.Show("Zaznacz dokładnie dwie krawędzie, aby ustawić prostopadłość.",
+								"Prostopadłość krawędzi",
+								MessageBoxButton.OK,
+								MessageBoxImage.Information);
+				return;
+			}
+
+			var edge1 = _vm.SelectedEdges[0];
+			var edge2 = _vm.SelectedEdges[1];
+
+			if (!_vm.AddPerpendicularConstraint(edge1, edge2, out string? error))
+			{
+				MessageBox.Show(error, "Prostopadłość krawędzi", MessageBoxButton.OK, MessageBoxImage.Information);
+			}
+		}
+
+		private void BezierButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (_vm.SelectedEdges.Count == 0)
+			{
+				MessageBox.Show("Zaznacz krawędź, aby przełączyć tryb krzywej Béziera.",
+								"Krzywa Béziera",
+								MessageBoxButton.OK,
+								MessageBoxImage.Information);
+				return;
+			}
+
+			foreach (var edge in _vm.SelectedEdges)
+			{
+				if (edge.IsBezier)
+				{
+					edge.DisableBezier();
+				}
+				else
+				{
+					edge.Constraints.Clear();
+					edge.EnableBezier();
+				}
+			}
+
+			_vm.UpdateConstraintVisuals();
+		}
+	}
 }

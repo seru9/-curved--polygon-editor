@@ -103,7 +103,8 @@ namespace _curved__polygon_editor.ViewModels
 			Vertex vNext = (e2.StartVertex == SelectedVertex) ? e2.EndVertex : e2.StartVertex;
 
 			int insertIndex = polygon.Edges.IndexOf(e1);
-
+			RemovePerpendicularConstraintsForEdge(e1);
+			RemovePerpendicularConstraintsForEdge(e2);
 			polygon.Edges.Remove(e1);
 			polygon.Edges.Remove(e2);
 			SelectedEdges.Remove(e1);
@@ -173,6 +174,7 @@ namespace _curved__polygon_editor.ViewModels
 			Edge e2 = new Edge(newVertex, v2, EdgeType.Line);
 
 			int edgeIndex = polygon.Edges.IndexOf(edge);
+			RemovePerpendicularConstraintsForEdge(edge);
 			polygon.Edges.Remove(edge);
 			SelectedEdges.Remove(edge);
 
@@ -210,11 +212,15 @@ namespace _curved__polygon_editor.ViewModels
 		{
 			foreach (var edge in SelectedEdges)
 			{
-				var existing = edge.Constraints.OfType<LengthConstraint>().ToList();
-				foreach (var c in existing)
+				// removing constrains from select
+				var existingLen = edge.Constraints.OfType<LengthConstraint>().ToList();
+				foreach (var c in existingLen)
 				{
 					edge.Constraints.Remove(c);
 				}
+
+				// removing the PerpendicularEdge for the edge's target edge
+				RemovePerpendicularConstraintsForEdge(edge);
 			}
 			UpdateConstraintVisuals();
 		}
@@ -222,19 +228,52 @@ namespace _curved__polygon_editor.ViewModels
 		public void UpdateConstraintVisuals()
 		{
 			ConstraintVisuals.Clear();
+
+			var perpLabels = new Dictionary<Edge, List<string>>();
+			int pairIndex = 1;
+
 			foreach (var polygon in Polygons)
 			{
 				foreach (var edge in polygon.Edges)
 				{
+					foreach (var perp in edge.Constraints.OfType<PerpendicularConstraint>().Where(c => c.IsActive))
+					{
+						string tag = $"⊥{pairIndex}";
+						if (!perpLabels.ContainsKey(edge)) perpLabels[edge] = new List<string>();
+						if (!perpLabels.ContainsKey(perp.TargetEdge)) perpLabels[perp.TargetEdge] = new List<string>();
+
+						perpLabels[edge].Add(tag);
+						perpLabels[perp.TargetEdge].Add(tag);
+						pairIndex++;
+					}
+				}
+			}
+
+			foreach (var polygon in Polygons)
+			{
+				foreach (var edge in polygon.Edges)
+				{
+					var parts = new List<string>();
+
 					var lengthConstraint = edge.Constraints.OfType<LengthConstraint>().FirstOrDefault(c => c.IsActive);
 					if (lengthConstraint != null)
+					{
+						parts.Add($"L={lengthConstraint.TargetLength:0.##}");
+					}
+
+					if (perpLabels.TryGetValue(edge, out var tags))
+					{
+						parts.AddRange(tags);
+					}
+
+					if (parts.Count > 0)
 					{
 						var center = edge.GetCenterPoint();
 						ConstraintVisuals.Add(new ConstraintVisual
 						{
 							X = center.X,
 							Y = center.Y,
-							Text = $"L={lengthConstraint.TargetLength:0.##}"
+							Text = string.Join(" | ", parts)
 						});
 					}
 				}
@@ -276,6 +315,65 @@ namespace _curved__polygon_editor.ViewModels
 			p2.Edges.Add(new Edge(v7, v4, EdgeType.Line));
 
 			Polygons.Add(p2);
+		}
+		public bool AddPerpendicularConstraint(Edge edge1, Edge edge2, out string? errorMessage)
+		{
+			if (edge1 == edge2)
+			{
+				errorMessage = "Wybierz dwie różne krawędzie.";
+				return false;
+			}
+
+			// optional, the perpendicular contraint has to be on edges from the same polygon
+			var poly1 = Polygons.FirstOrDefault(p => p.Edges.Contains(edge1));
+			var poly2 = Polygons.FirstOrDefault(p => p.Edges.Contains(edge2));
+			if (poly1 == null || poly1 != poly2)
+			{
+				errorMessage = "Wybrane krawędzie muszą należeć do tego samego wielokąta.";
+				return false;
+			}
+
+		
+			RemovePerpendicularConstraintsForEdge(edge1);
+			RemovePerpendicularConstraintsForEdge(edge2);
+
+			// dodajemy ograniczenie (wystarczy dodać do edge1 ze wskazaniem na edge2, 
+			// lub symetrycznie do obu - jeśli dodasz tylko do edge1, solver w każdej iteracji wykona obrót raz na parę)
+			edge1.Constraints.Add(new PerpendicularConstraint(edge2));
+
+			// solver for edges to be in their new positions
+			ConstraintSolver.Solve(Polygons);
+			UpdateConstraintVisuals();
+
+			errorMessage = null;
+			return true;
+		}
+
+		private void RemovePerpendicularConstraintsForEdge(Edge targetEdge)
+		{
+			// remove the Perpendicular constraint directly from the edge
+			var ownPerp = targetEdge.Constraints.OfType<PerpendicularConstraint>().ToList();
+			foreach (var c in ownPerp)
+			{
+				targetEdge.Constraints.Remove(c);
+			}
+
+			// remove the p. constraint from the targetEdge
+			foreach (var polygon in Polygons)
+			{
+				foreach (var edge in polygon.Edges)
+				{
+					var pointingToTarget = edge.Constraints
+						.OfType<PerpendicularConstraint>()
+						.Where(c => c.TargetEdge == targetEdge)
+						.ToList();
+
+					foreach (var c in pointingToTarget)
+					{
+						edge.Constraints.Remove(c);
+					}
+				}
+			}
 		}
 	}
 
