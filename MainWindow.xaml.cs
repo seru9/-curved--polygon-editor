@@ -342,6 +342,58 @@ namespace _curved__polygon_editor
 				}
 			}
 
+			ConstraintSolver.Solve(_vm.Polygons);
+			_vm.UpdateConstraintVisuals();
+		}
+		private void SetG0Button_Click(object sender, RoutedEventArgs e) => SetSelectedVertexContinuity(ContinuityType.G0);
+		private void SetG1Button_Click(object sender, RoutedEventArgs e) => SetSelectedVertexContinuity(ContinuityType.G1);
+		private void SetC1Button_Click(object sender, RoutedEventArgs e) => SetSelectedVertexContinuity(ContinuityType.C1);
+
+		private void SetSelectedVertexContinuity(ContinuityType continuity)
+		{
+			var vertex = _vm.SelectedVertex;
+			if (vertex == null)
+			{
+				MessageBox.Show("Zaznacz wierzchołek, aby określić jego klasę ciągłości.",
+								"Ciągłość wierzchołka",
+								MessageBoxButton.OK,
+								MessageBoxImage.Information);
+				return;
+			}
+
+			Polygon? ownerPolygon = null;
+			bool touchesBezier = false;
+
+			foreach (var poly in _vm.Polygons)
+			{
+				if (poly.Vertices.Contains(vertex))
+				{
+					ownerPolygon = poly;
+					foreach (var edge in poly.Edges)
+					{
+						if ((edge.StartVertex == vertex || edge.EndVertex == vertex) && edge.IsBezier)
+						{
+							touchesBezier = true;
+							break;
+						}
+					}
+					break;
+				}
+			}
+
+			if (!touchesBezier)
+			{
+				MessageBox.Show("Wybrany wierzchołek nie sąsiaduje z żadnym segmentem Béziera.",
+								"Ciągłość wierzchołka",
+								MessageBoxButton.OK,
+								MessageBoxImage.Information);
+				return;
+			}
+
+			vertex.IsContinuityExplicitlySet = true;
+			vertex.Continuity = continuity;
+
+			ConstraintSolver.Solve(ownerPolygon, vertex);
 			_vm.UpdateConstraintVisuals();
 		}
 	}

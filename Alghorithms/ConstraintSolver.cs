@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using _curved__polygon_editor.Models;
 using _curved__polygon_editor.Models.Constraints;
@@ -10,9 +11,28 @@ namespace _curved__polygon_editor.Algorithms
 		// Dodajemy opcjonalny parametr pinnedVertex i zwiększamy domyślną liczbę iteracji dla lepszej zbieżności
 		public static void Solve(IEnumerable<Polygon> polygons, Vertex? pinnedVertex = null, int iterations = 15)
 		{
+			var polyList = polygons.ToList();
+
+			// Zapamiętujemy początkowe wektory punktów kontrolnych względem ich wierzchołków,
+			// aby przy ruchu wierzchołka głównego punkty kontrolne podążały za nim naturalnie.
+			var initialOffsets = new Dictionary<Edge, (Vector cp1Offset, Vector cp2Offset)>();
+			foreach (var poly in polyList)
+			{
+				foreach (var edge in poly.Edges)
+				{
+					if (edge.IsBezier && edge.ControlPoint1 != null && edge.ControlPoint2 != null)
+					{
+						initialOffsets[edge] = (
+							edge.ControlPoint1.Position - edge.StartVertex.Position,
+							edge.ControlPoint2.Position - edge.EndVertex.Position
+						);
+					}
+				}
+			}
+
 			for (int it = 0; it < iterations; it++)
 			{
-				foreach (var polygon in polygons)
+				foreach (var polygon in polyList)
 				{
 					foreach (var edge in polygon.Edges)
 					{
@@ -30,6 +50,33 @@ namespace _curved__polygon_editor.Algorithms
 							}
 						}
 					}
+
+					// update of the position of control points when the vertices are being moved
+					foreach (var edge in polygon.Edges)
+					{
+						if (edge.IsBezier && initialOffsets.TryGetValue(edge, out var offsets))
+						{
+							if (edge.ControlPoint1 != null && edge.ControlPoint1 != pinnedVertex)
+								edge.ControlPoint1.Position = edge.StartVertex.Position + offsets.cp1Offset;
+							if (edge.ControlPoint2 != null && edge.ControlPoint2 != pinnedVertex)
+								edge.ControlPoint2.Position = edge.EndVertex.Position + offsets.cp2Offset;
+						}
+					}
+
+					// forced continuity on vertexes adjacent to bezier curve 
+					ApplyBezierContinuity(polygon, pinnedVertex);
+
+					// Odświeżenie offsetów po korekcie ciągłości
+					foreach (var edge in polygon.Edges)
+					{
+						if (edge.IsBezier && edge.ControlPoint1 != null && edge.ControlPoint2 != null)
+						{
+							initialOffsets[edge] = (
+								edge.ControlPoint1.Position - edge.StartVertex.Position,
+								edge.ControlPoint2.Position - edge.EndVertex.Position
+							);
+						}
+					}
 				}
 			}
 		}
@@ -39,6 +86,114 @@ namespace _curved__polygon_editor.Algorithms
 		{
 			if (polygon == null) return;
 			Solve(new[] { polygon }, pinnedVertex, iterations);
+		}
+
+		public static void ApplyBezierContinuity(Polygon polygon, Vertex? pinnedVertex = null)
+		{
+			foreach (var v in polygon.Vertices)
+			{
+				if (v.Continuity == ContinuityType.G0) continue;
+
+				Edge? inEdge = polygon.Edges.FirstOrDefault(e => e.EndVertex == v);
+				Edge? outEdge = polygon.Edges.FirstOrDefault(e => e.StartVertex == v);
+
+				if (inEdge == null || outEdge == null) continue;
+				if (!inEdge.IsBezier && !outEdge.IsBezier) continue;
+
+				EnforceVertexContinuity(v, inEdge, outEdge, pinnedVertex);
+			}
+		}
+
+		private static void EnforceVertexContinuity(Vertex v, Edge inEdge, Edge outEdge, Vertex? pinnedVertex)
+		{
+			// case 1 - both edges are bezier curves 
+			if (inEdge.IsBezier && outEdge.IsBezier)
+			{
+				// control points of the edges 
+				Vertex? cpIn = inEdge.ControlPoint2;  
+				Vertex? cpOut = outEdge.ControlPoint1;
+				if (cpIn == null || cpOut == null) return;
+
+				if (pinnedVertex == cpIn)
+				{
+					// if dragged is cpIn then we adjust other cpOut
+					AdjustOppositePoint(v.Position, cpIn.Position, cpOut, v.Continuity, factor: 1.0);
+				}
+				else if (pinnedVertex == cpOut)
+				{
+					//otherwise
+					AdjustOppositePoint(v.Position, cpOut.Position, cpIn, v.Continuity, factor: 1.0);
+				}
+				else
+				{
+					// Przeciągany jest wierzchołek v lub inny element -> wyrównujemy oba punkty kontrolne
+					Vector dirIn = v.Position - cpIn.Position;
+					Vector dirOut = cpOut.Position - v.Position;
+					Vector avgDir = dirIn + dirOut;
+
+					if (avgDir.LengthSquared < 0.0001)
+						avgDir = new Vector(1, 0);
+					else
+						avgDir.Normalize();
+
+					if (v.Continuity == ContinuityType.C1)
+					{
+						double len = (dirIn.Length + dirOut.Length) / 2.0;
+						cpIn.Position = v.Position - avgDir * len;
+						cpOut.Position = v.Position + avgDir * len;
+					}
+					else // G1
+					{
+						double lenIn = dirIn.Length > 0.001 ? dirIn.Length : 30.0;
+						double lenOut = dirOut.Length > 0.001 ? dirOut.Length : 30.0;
+						cpIn.Position = v.Position - avgDir * lenIn;
+						cpOut.Position = v.Position + avgDir * lenOut;
+					}
+				}
+			}
+			// case 2 - only one of them is bezier curve 
+			else
+			{
+				Edge bezierEdge = inEdge.IsBezier ? inEdge : outEdge;
+				Edge lineEdge = inEdge.IsBezier ? outEdge : inEdge;
+
+				Vertex? cp = (bezierEdge == inEdge) ? bezierEdge.ControlPoint2 : bezierEdge.ControlPoint1;
+				Vertex lineOtherVertex = (lineEdge.StartVertex == v) ? lineEdge.EndVertex : lineEdge.StartVertex;
+
+				if (cp == null) return;
+
+				if (pinnedVertex == cp)
+				{
+					// If dragged is control point then the EndVertex of the adjacent edge is being moved 
+					AdjustOppositePoint(v.Position, cp.Position, lineOtherVertex, v.Continuity, factor: 3.0);
+				}
+				else
+				{
+					// Vertex is being moved then controlPoint needs to be adjusted
+					AdjustOppositePoint(v.Position, lineOtherVertex.Position, cp, v.Continuity, factor: 1.0 / 3.0);
+				}
+			}
+		}
+
+		private static void AdjustOppositePoint(Point vPos, Point anchorPos, Vertex targetToMove, ContinuityType continuity, double factor)
+		{
+			Vector dir = vPos - anchorPos;
+			double dist = dir.Length;
+
+			if (dist < 0.0001) return;
+			dir.Normalize();
+
+			if (continuity == ContinuityType.C1)
+			{
+				double targetDist = dist * factor;
+				targetToMove.Position = vPos + dir * targetDist;
+			}
+			else if (continuity == ContinuityType.G1)
+			{
+				double currentDist = (targetToMove.Position - vPos).Length;
+				if (currentDist < 1.0) currentDist = dist * factor;
+				targetToMove.Position = vPos + dir * currentDist;
+			}
 		}
 
 		public static void ApplyLengthConstraint(Edge edge, double targetLength, Vertex? pinnedVertex = null)

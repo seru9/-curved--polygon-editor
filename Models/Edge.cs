@@ -112,20 +112,25 @@ namespace _curved__polygon_editor.Models
 
 		public void EnableBezier()
 		{
+			if (!StartVertex.IsContinuityExplicitlySet)
+				StartVertex.Continuity = ContinuityType.C1;
+
+			if (!EndVertex.IsContinuityExplicitlySet)
+				EndVertex.Continuity = ContinuityType.C1;
+
 			double dx = (EndVertex.X - StartVertex.X) / 3.0;
 			double dy = (EndVertex.Y - StartVertex.Y) / 3.0;
-
 			// shifting control points so that they are visible
-			double perpX = -dy * 0.5;
-			double perpY = dx * 0.5;
 
-			ControlPoint1 = new Vertex(new Point(StartVertex.X + dx + perpX, StartVertex.Y + dy + perpY), ContinuityType.G1);
-			ControlPoint2 = new Vertex(new Point(StartVertex.X + 2 * dx + perpX, StartVertex.Y + 2 * dy + perpY), ContinuityType.G1);
+			double perpX = -dy * 0.3;
+			double perpY = dx * 0.3;
+
+			ControlPoint1 = new Vertex(new Point(StartVertex.X + dx + perpX, StartVertex.Y + dy + perpY), ContinuityType.G0);
+			ControlPoint2 = new Vertex(new Point(StartVertex.X + 2 * dx + perpX, StartVertex.Y + 2 * dy + perpY), ContinuityType.G0);
 
 			EdgeType = EdgeType.Bezier;
 			IsBezier = true;
 		}
-
 		public void DisableBezier()
 		{
 			IsBezier = false;

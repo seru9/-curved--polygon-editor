@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using System.ComponentModel;
+using System.Windows;
+
 namespace _curved__polygon_editor.Models
 {
 	public enum ContinuityType
@@ -13,14 +9,19 @@ namespace _curved__polygon_editor.Models
 		G1,
 		C1
 	};
+
 	public class Vertex : INotifyPropertyChanged
 	{
 		private Point _position;
 		private ContinuityType _continuity;
-		
+		private bool _isSelected;
+
+		// Flaga informuj¹ca, czy u¿ytkownik jawnie zmieni³ ci¹g³oœæ w tym wierzcho³ku
+		public bool IsContinuityExplicitlySet { get; set; } = false;
+
 		public Point Position
 		{
-			get { return _position; }
+			get => _position;
 			set
 			{
 				if (_position != value)
@@ -32,6 +33,7 @@ namespace _curved__polygon_editor.Models
 				}
 			}
 		}
+
 		public ContinuityType Continuity
 		{
 			get => _continuity;
@@ -41,13 +43,16 @@ namespace _curved__polygon_editor.Models
 				{
 					_continuity = value;
 					OnPropertyChanged(nameof(Continuity));
+					OnPropertyChanged(nameof(ContinuityText));
 				}
 			}
 		}
-		public double X => _position.X; // helpful for binding
+
+		public string ContinuityText => _continuity.ToString();
+
+		public double X => _position.X; //helpful for binding
 		public double Y => _position.Y;
 
-		private bool _isSelected;
 		public bool IsSelected
 		{
 			get => _isSelected;
@@ -66,6 +71,7 @@ namespace _curved__polygon_editor.Models
 			Position = position;
 			Continuity = continuity;
 		}
+
 		public event PropertyChangedEventHandler? PropertyChanged;
 		protected void OnPropertyChanged(string propertyName) =>
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
