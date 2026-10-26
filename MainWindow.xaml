@@ -66,7 +66,7 @@
             <Button Content="Usuń ograniczenie" Click="RemoveConstraintButton_Click" Margin="0,0,6,0" />
             <Button Content="Ustaw prostopadłość" Click="PerpendicularButton_Click" Margin="0,0,6,0" />
             <Button Content="Przełącz Bezier" Click="BezierButton_Click" Margin="0,0,6,0" />
-            <Button Content="Przełącz Bezier" Click="BezierButton_Click" Margin="0,0,6,0" />
+            <Button Content="Przełącz Łuk" Click="ArcButton_Click" Margin="0,0,6,0" />
             <Button Content="G0" Click="SetG0Button_Click" Margin="0,0,3,0" Padding="6,2" />
             <Button Content="G1" Click="SetG1Button_Click" Margin="0,0,3,0" Padding="6,2" />
             <Button Content="C1" Click="SetC1Button_Click" Margin="0,0,6,0" Padding="6,2" />
@@ -129,7 +129,7 @@
                                                          Canvas.Top="{Binding ControlPoint2.Y, Converter={StaticResource SubtractConverter}, ConverterParameter=4}" />
                                             </Canvas>
 
-                                            <!-- Główna linia / krzywa Beziera -->
+                                            <!-- Główna linia / krzywa Beziera / łuk -->
                                             <Path Data="{Binding Self, Converter={StaticResource EdgeToGeometryConverter}}"
                                                   Style="{StaticResource EdgePathStyle}" />
                                         </Canvas>
@@ -157,8 +157,8 @@
                                         <Canvas>
                                             <Ellipse Style="{StaticResource VertexEllipseStyle}" />
                                             <TextBlock Text="{Binding ContinuityText}"
-                       FontSize="10" FontWeight="Bold" Foreground="DarkSlateBlue"
-                       Canvas.Left="10" Canvas.Top="-6" IsHitTestVisible="False" />
+                                                       FontSize="10" FontWeight="Bold" Foreground="DarkSlateBlue"
+                                                       Canvas.Left="10" Canvas.Top="-6" IsHitTestVisible="False" />
                                         </Canvas>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

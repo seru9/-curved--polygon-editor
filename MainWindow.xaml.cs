@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -82,7 +83,7 @@ namespace _curved__polygon_editor
 			{
 				foreach (var edge in polygon.Edges)
 				{
-					double distance = DistanceToSegment(pos, edge.StartVertex.Position, edge.EndVertex.Position);
+					double distance = DistanceToEdge(edge, pos);
 					if (distance < best)
 					{
 						best = distance;
@@ -144,7 +145,7 @@ namespace _curved__polygon_editor
 					v.Position = new Point(v.Position.X + delta.X, v.Position.Y + delta.Y);
 				}
 
-				// Przesunięcie punktów kontrolnych krzywych Béziera razem z wielokątem
+				// Przesunięcie punktów kontrolnych krzywych Béziera oraz odświeżenie łuków
 				foreach (var edge in _draggedWholePolygon.Edges)
 				{
 					if (edge.IsBezier)
@@ -153,6 +154,10 @@ namespace _curved__polygon_editor
 							edge.ControlPoint1.Position = new Point(edge.ControlPoint1.Position.X + delta.X, edge.ControlPoint1.Position.Y + delta.Y);
 						if (edge.ControlPoint2 != null)
 							edge.ControlPoint2.Position = new Point(edge.ControlPoint2.Position.X + delta.X, edge.ControlPoint2.Position.Y + delta.Y);
+					}
+					else if (edge.IsArc)
+					{
+						edge.NotifyArcChanged();
 					}
 				}
 
@@ -170,6 +175,20 @@ namespace _curved__polygon_editor
 				_draggedWholePolygon = null;
 				((IInputElement)sender).ReleaseMouseCapture();
 			}
+		}
+
+		private static double DistanceToEdge(Edge edge, Point pos)
+		{
+			if (edge.IsArc || edge.IsBezier)
+			{
+				var geom = _curved__polygon_editor.Helpers.EdgeToGeometryConverter.GetGeometry(edge);
+				if (geom != null && geom.StrokeContains(new System.Windows.Media.Pen(System.Windows.Media.Brushes.Black, 16), pos))
+				{
+					return 0;
+				}
+			}
+
+			return DistanceToSegment(pos, edge.StartVertex.Position, edge.EndVertex.Position);
 		}
 
 		private static double DistanceToSegment(Point point, Point a, Point b)
@@ -227,6 +246,12 @@ namespace _curved__polygon_editor
 			}
 
 			var edge = _vm.SelectedEdges[0];
+			if (edge.IsBezier || edge.IsArc)
+			{
+				MessageBox.Show("Ograniczenie długości można nałożyć tylko na zwykły odcinek.", "Długość krawędzi", MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
+
 			double current = GetEdgeLength(edge);
 			double? result = PromptLength(current);
 			if (result.HasValue)
@@ -312,6 +337,15 @@ namespace _curved__polygon_editor
 			var edge1 = _vm.SelectedEdges[0];
 			var edge2 = _vm.SelectedEdges[1];
 
+			if (edge1.IsBezier || edge1.IsArc || edge2.IsBezier || edge2.IsArc)
+			{
+				MessageBox.Show("Więzy prostopadłości można nakładać tylko na zwykłe odcinki.",
+								"Prostopadłość krawędzi",
+								MessageBoxButton.OK,
+								MessageBoxImage.Information);
+				return;
+			}
+
 			if (!_vm.AddPerpendicularConstraint(edge1, edge2, out string? error))
 			{
 				MessageBox.Show(error, "Prostopadłość krawędzi", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -329,6 +363,8 @@ namespace _curved__polygon_editor
 				return;
 			}
 
+			_vm.RemoveConstraintsFromSelected();
+
 			foreach (var edge in _vm.SelectedEdges)
 			{
 				if (edge.IsBezier)
@@ -337,7 +373,7 @@ namespace _curved__polygon_editor
 				}
 				else
 				{
-					edge.Constraints.Clear();
+					edge.DisableArc();
 					edge.EnableBezier();
 				}
 			}
@@ -345,6 +381,37 @@ namespace _curved__polygon_editor
 			ConstraintSolver.Solve(_vm.Polygons);
 			_vm.UpdateConstraintVisuals();
 		}
+
+		private void ArcButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (_vm.SelectedEdges.Count == 0)
+			{
+				MessageBox.Show("Zaznacz krawędź, aby przełączyć tryb łuku okręgu.",
+								"Łuk okręgu",
+								MessageBoxButton.OK,
+								MessageBoxImage.Information);
+				return;
+			}
+
+			_vm.RemoveConstraintsFromSelected();
+
+			foreach (var edge in _vm.SelectedEdges)
+			{
+				if (edge.IsArc)
+				{
+					edge.DisableArc();
+				}
+				else
+				{
+					Polygon? owner = _vm.Polygons.FirstOrDefault(p => p.Edges.Contains(edge));
+					edge.EnableArc(owner);
+				}
+			}
+
+			ConstraintSolver.Solve(_vm.Polygons);
+			_vm.UpdateConstraintVisuals();
+		}
+
 		private void SetG0Button_Click(object sender, RoutedEventArgs e) => SetSelectedVertexContinuity(ContinuityType.G0);
 		private void SetG1Button_Click(object sender, RoutedEventArgs e) => SetSelectedVertexContinuity(ContinuityType.G1);
 		private void SetC1Button_Click(object sender, RoutedEventArgs e) => SetSelectedVertexContinuity(ContinuityType.C1);
@@ -363,6 +430,7 @@ namespace _curved__polygon_editor
 
 			Polygon? ownerPolygon = null;
 			bool touchesBezier = false;
+			var adjacentArcs = new System.Collections.Generic.List<Edge>();
 
 			foreach (var poly in _vm.Polygons)
 			{
@@ -371,29 +439,63 @@ namespace _curved__polygon_editor
 					ownerPolygon = poly;
 					foreach (var edge in poly.Edges)
 					{
-						if ((edge.StartVertex == vertex || edge.EndVertex == vertex) && edge.IsBezier)
+						if (edge.StartVertex == vertex || edge.EndVertex == vertex)
 						{
-							touchesBezier = true;
-							break;
+							if (edge.IsBezier) touchesBezier = true;
+							if (edge.IsArc) adjacentArcs.Add(edge);
 						}
 					}
 					break;
 				}
 			}
 
-			if (!touchesBezier)
+			if (!touchesBezier && adjacentArcs.Count == 0)
 			{
-				MessageBox.Show("Wybrany wierzchołek nie sąsiaduje z żadnym segmentem Béziera.",
+				MessageBox.Show("Wybrany wierzchołek nie sąsiaduje z segmentem Béziera ani z łukiem okręgu.",
 								"Ciągłość wierzchołka",
 								MessageBoxButton.OK,
 								MessageBoxImage.Information);
 				return;
 			}
 
+			// Walidacja wymagań dla łuku okręgu
+			if (adjacentArcs.Count > 0)
+			{
+				if (continuity == ContinuityType.C1)
+				{
+					MessageBox.Show("Dla wierzchołka sąsiadującego z łukiem okręgu dostępne są tylko klasy ciągłości G0 oraz G1.",
+									"Ciągłość łuku",
+									MessageBoxButton.OK,
+									MessageBoxImage.Warning);
+					return;
+				}
+
+				if (continuity == ContinuityType.G1)
+				{
+					foreach (var arc in adjacentArcs)
+					{
+						// Tylko jeden koniec łuku może mieć ustawioną ciągłość G1
+						Vertex otherEnd = (arc.StartVertex == vertex) ? arc.EndVertex : arc.StartVertex;
+						if (otherEnd.Continuity == ContinuityType.G1)
+						{
+							otherEnd.Continuity = ContinuityType.G0;
+							MessageBox.Show("Tylko jeden koniec łuku może mieć ustawioną ciągłość G1.\nDrugi koniec łuku został automatycznie przełączony na G0.",
+											"Ciągłość łuku",
+											MessageBoxButton.OK,
+											MessageBoxImage.Information);
+						}
+					}
+				}
+			}
+
 			vertex.IsContinuityExplicitlySet = true;
 			vertex.Continuity = continuity;
 
 			ConstraintSolver.Solve(ownerPolygon, vertex);
+			foreach (var arc in adjacentArcs)
+			{
+				arc.NotifyArcChanged();
+			}
 			_vm.UpdateConstraintVisuals();
 		}
 	}

@@ -79,6 +79,18 @@ namespace _curved__polygon_editor.Algorithms
 					}
 				}
 			}
+
+			// Refresh arc geometries after all vertices and tangents are solved
+			foreach (var polygon in polyList)
+			{
+				foreach (var edge in polygon.Edges)
+				{
+					if (edge.IsArc)
+					{
+						edge.NotifyArcChanged();
+					}
+				}
+			}
 		}
 
 		// Przeciążenie dla pojedynczego wielokąta (wygodne przy przeciąganiu wierzchołka)
@@ -110,7 +122,7 @@ namespace _curved__polygon_editor.Algorithms
 			if (inEdge.IsBezier && outEdge.IsBezier)
 			{
 				// control points of the edges 
-				Vertex? cpIn = inEdge.ControlPoint2;  
+				Vertex? cpIn = inEdge.ControlPoint2;
 				Vertex? cpOut = outEdge.ControlPoint1;
 				if (cpIn == null || cpOut == null) return;
 
@@ -155,10 +167,13 @@ namespace _curved__polygon_editor.Algorithms
 			else
 			{
 				Edge bezierEdge = inEdge.IsBezier ? inEdge : outEdge;
-				Edge lineEdge = inEdge.IsBezier ? outEdge : inEdge;
+				Edge otherEdge = inEdge.IsBezier ? outEdge : inEdge;
+
+				// If the adjacent edge is an Arc, the Arc adapts to the Bezier curve (not the other way around)
+				if (otherEdge.IsArc) return;
 
 				Vertex? cp = (bezierEdge == inEdge) ? bezierEdge.ControlPoint2 : bezierEdge.ControlPoint1;
-				Vertex lineOtherVertex = (lineEdge.StartVertex == v) ? lineEdge.EndVertex : lineEdge.StartVertex;
+				Vertex lineOtherVertex = (otherEdge.StartVertex == v) ? otherEdge.EndVertex : otherEdge.StartVertex;
 
 				if (cp == null) return;
 

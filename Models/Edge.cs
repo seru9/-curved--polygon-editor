@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
@@ -21,6 +21,49 @@ namespace _curved__polygon_editor.Models
 		private Vertex? _controlPoint2;
 		private EdgeType _edgeType;
 		private bool _isBezier;
+		public Polygon? OwnerPolygon { get; set; }
+		public bool IsArc => _edgeType == EdgeType.Arc;
+
+		public void EnableArc(Polygon? ownerPolygon)
+		{
+			if (ownerPolygon != null)
+				OwnerPolygon = ownerPolygon;
+
+			DisableBezier();
+
+			if (!StartVertex.IsContinuityExplicitlySet || StartVertex.Continuity == ContinuityType.C1)
+				StartVertex.Continuity = ContinuityType.G0;
+
+			if (!EndVertex.IsContinuityExplicitlySet || EndVertex.Continuity == ContinuityType.C1)
+				EndVertex.Continuity = ContinuityType.G0;
+
+			if (StartVertex.Continuity == ContinuityType.G1 && EndVertex.Continuity == ContinuityType.G1)
+				EndVertex.Continuity = ContinuityType.G0;
+
+			EdgeType = EdgeType.Arc;
+			OnPropertyChanged(nameof(EdgeType));
+			OnPropertyChanged(nameof(IsArc));
+			OnPropertyChanged(nameof(Self));
+			OnPropertyChanged(string.Empty);
+		}
+
+		public void DisableArc()
+		{
+			if (EdgeType == EdgeType.Arc)
+			{
+				EdgeType = EdgeType.Line;
+				OnPropertyChanged(nameof(EdgeType));
+				OnPropertyChanged(nameof(IsArc));
+				OnPropertyChanged(nameof(Self));
+				OnPropertyChanged(string.Empty);
+			}
+		}
+
+		public void NotifyArcChanged()
+		{
+			OnPropertyChanged(nameof(Self));
+			OnPropertyChanged(string.Empty);
+		}
 
 		public bool IsBezier
 		{
@@ -32,6 +75,7 @@ namespace _curved__polygon_editor.Models
 					_isBezier = value;
 					OnPropertyChanged(nameof(IsBezier));
 					OnPropertyChanged(nameof(Self));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
@@ -50,6 +94,7 @@ namespace _curved__polygon_editor.Models
 						_controlPoint1.PropertyChanged += Vertex_PropertyChanged;
 					OnPropertyChanged(nameof(ControlPoint1));
 					OnPropertyChanged(nameof(Self));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
@@ -68,6 +113,7 @@ namespace _curved__polygon_editor.Models
 						_controlPoint2.PropertyChanged += Vertex_PropertyChanged;
 					OnPropertyChanged(nameof(ControlPoint2));
 					OnPropertyChanged(nameof(Self));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
@@ -120,7 +166,6 @@ namespace _curved__polygon_editor.Models
 
 			double dx = (EndVertex.X - StartVertex.X) / 3.0;
 			double dy = (EndVertex.Y - StartVertex.Y) / 3.0;
-			// shifting control points so that they are visible
 
 			double perpX = -dy * 0.3;
 			double perpY = dx * 0.3;
@@ -131,6 +176,7 @@ namespace _curved__polygon_editor.Models
 			EdgeType = EdgeType.Bezier;
 			IsBezier = true;
 		}
+
 		public void DisableBezier()
 		{
 			IsBezier = false;
@@ -149,6 +195,7 @@ namespace _curved__polygon_editor.Models
 					_edgeType = value;
 					OnPropertyChanged(nameof(EdgeType));
 					OnPropertyChanged(nameof(Self));
+					OnPropertyChanged(string.Empty);
 				}
 			}
 		}
