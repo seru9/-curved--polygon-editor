@@ -498,5 +498,12 @@ namespace _curved__polygon_editor
 			}
 			_vm.UpdateConstraintVisuals();
 		}
+		private void LineDrawingMode_Checked(object sender, RoutedEventArgs e)
+		{
+			if (_vm == null) return; 
+
+			_curved__polygon_editor.Helpers.EdgeToGeometryConverter.UseBresenham = (BresenhamLineRadio.IsChecked == true);
+			_vm.RefreshAllEdges();
+		}
 	}
 }

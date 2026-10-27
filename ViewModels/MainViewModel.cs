@@ -57,7 +57,16 @@ namespace _curved__polygon_editor.ViewModels
 				SelectedEdges.Remove(edge);
 			}
 		}
-
+		public void RefreshAllEdges()
+		{
+			foreach (var polygon in Polygons)
+			{
+				foreach (var edge in polygon.Edges)
+				{
+					edge.NotifyArcChanged();
+				}
+			}
+		}
 		public void ClearSelection()
 		{
 			foreach (var edge in SelectedEdges)
@@ -281,40 +290,80 @@ namespace _curved__polygon_editor.ViewModels
 		}
 		private void InitializeDemoScene()
 		{
-			// Wielokąt 1 (np. trójkąt)
-			var p1 = new Polygon();
-			var v1 = new Vertex(new Point(50, 50));
-			var v2 = new Vertex(new Point(200, 50));
-			var v3 = new Vertex(new Point(125, 180));
+			// 1. Wielokąt nr 1 (czworokąt z ograniczeniami długości, prostopadłości i segmentem Béziera)
+			var p1 = CreatePolygon(
+				new Point(60, 80),
+				new Point(220, 80),
+				new Point(220, 240),
+				new Point(60, 240)
+			);
 
-			p1.Vertices.Add(v1);
-			p1.Vertices.Add(v2);
-			p1.Vertices.Add(v3);
+			// Krawędź 0 (górna): stała długość L = 160
+			p1.Edges[0].Constraints.Add(new LengthConstraint(160));
 
-			p1.Edges.Add(new Edge(v1, v2, EdgeType.Line));
-			p1.Edges.Add(new Edge(v2, v3, EdgeType.Line));
-			p1.Edges.Add(new Edge(v3, v1, EdgeType.Line));
+			// Krawędź 0 (górna) i Krawędź 3 (lewa): więzy prostopadłości (⊥)
+			p1.Edges[0].Constraints.Add(new PerpendicularConstraint(p1.Edges[3]));
 
-			Polygons.Add(p1);
+			// Krawędź 1 (prawa): zamieniona na krzywą Béziera z ciągłościami C1 i G1 na końcach
+			p1.Edges[1].EnableBezier();
+			p1.Vertices[1].Continuity = ContinuityType.C1;
+			p1.Vertices[1].IsContinuityExplicitlySet = true;
+			p1.Vertices[2].Continuity = ContinuityType.G1;
+			p1.Vertices[2].IsContinuityExplicitlySet = true;
 
-			// Możesz w bardzo prosty i czytelny sposób dodać kolejne wielokąty
-			var p2 = new Polygon();
-			var v4 = new Vertex(new Point(300, 100));
-			var v5 = new Vertex(new Point(450, 100));
-			var v6 = new Vertex(new Point(450, 250));
-			var v7 = new Vertex(new Point(300, 250));
 
-			p2.Vertices.Add(v4);
-			p2.Vertices.Add(v5);
-			p2.Vertices.Add(v6);
-			p2.Vertices.Add(v7);
+			// 2. Wielokąt nr 2 (pięciokąt prezentujący m.in. łuk okręgu, Beziera oraz więzy geometryczne)
+			var p2 = CreatePolygon(
+				new Point(360, 80),
+				new Point(520, 80),
+				new Point(570, 190),
+				new Point(440, 280),
+				new Point(340, 190)
+			);
 
-			p2.Edges.Add(new Edge(v4, v5, EdgeType.Line));
-			p2.Edges.Add(new Edge(v5, v6, EdgeType.Line));
-			p2.Edges.Add(new Edge(v6, v7, EdgeType.Line));
-			p2.Edges.Add(new Edge(v7, v4, EdgeType.Line));
+			// Krawędź 0 (górna): stała długość L = 160
+			p2.Edges[0].Constraints.Add(new LengthConstraint(160));
 
-			Polygons.Add(p2);
+			// Krawędź 1 (prawa górna): łuk okręgu z ciągłością G1 w wierzchołku początkowym
+			p2.Edges[1].EnableArc(p2);
+			p2.Vertices[1].Continuity = ContinuityType.G1;
+			p2.Vertices[1].IsContinuityExplicitlySet = true;
+
+			// Krawędź 3 (lewa dolna): segment Béziera
+			p2.Edges[3].EnableBezier();
+
+			// Krawędź 0 i Krawędź 4: prostopadłość
+			p2.Edges[0].Constraints.Add(new PerpendicularConstraint(p2.Edges[4]));
+
+
+			// --- Dodanie kolejnego wielokąta w kodzie to tylko jedno wywołanie: ---
+			// var p3 = CreatePolygon(new Point(620, 80), new Point(740, 80), new Point(680, 200));
+
+			// Przeliczenie solvera dla całej sceny na starcie, aby dopasować punkty kontrolne i więzy
+			ConstraintSolver.Solve(Polygons);
+		}
+
+		private Polygon CreatePolygon(params Point[] points)
+		{
+			if (points == null || points.Length < 3)
+				throw new ArgumentException("Wielokąt musi mieć co najmniej 3 wierzchołki.");
+
+			var polygon = new Polygon();
+
+			foreach (var pt in points)
+			{
+				polygon.Vertices.Add(new Vertex(pt));
+			}
+
+			for (int i = 0; i < polygon.Vertices.Count; i++)
+			{
+				var vStart = polygon.Vertices[i];
+				var vEnd = polygon.Vertices[(i + 1) % polygon.Vertices.Count];
+				polygon.Edges.Add(new Edge(vStart, vEnd, EdgeType.Line) { OwnerPolygon = polygon });
+			}
+
+			Polygons.Add(polygon);
+			return polygon;
 		}
 		public bool AddPerpendicularConstraint(Edge edge1, Edge edge2, out string? errorMessage)
 		{

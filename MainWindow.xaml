@@ -59,7 +59,7 @@
         </Grid.RowDefinitions>
 
         <!-- Pasek narzędzi -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="6">
+        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="6" VerticalAlignment="Center">
             <Button Content="Dodaj wierzchołek" Click="AddVertexButton_Click" Margin="0,0,6,0" />
             <Button Content="Usuń wierzchołek" Click="DeleteVertexButton_Click" Margin="0,0,6,0" />
             <Button Content="Ustaw długość" Click="LengthButton_Click" Margin="0,0,6,0" />
@@ -70,8 +70,20 @@
             <Button Content="G0" Click="SetG0Button_Click" Margin="0,0,3,0" Padding="6,2" />
             <Button Content="G1" Click="SetG1Button_Click" Margin="0,0,3,0" Padding="6,2" />
             <Button Content="C1" Click="SetC1Button_Click" Margin="0,0,6,0" Padding="6,2" />
-            <Button Content="Wyczyść zaznaczenie" Click="ClearSelectionButton_Click" />
-        </StackPanel>
+            <Button Content="Wyczyść zaznaczenie" Click="ClearSelectionButton_Click" Margin="0,0,12,0" />
+            <RadioButton x:Name="LibraryLineRadio"
+                 Content="Funkcja biblioteczna"
+                 GroupName="LineDrawMode"
+                 IsChecked="True"
+                 VerticalAlignment="Center"
+                 Margin="0,0,8,0"
+                 Checked="LineDrawingMode_Checked" />
+            <RadioButton x:Name="BresenhamLineRadio"
+                 Content="Bresenham"
+                 GroupName="LineDrawMode"
+                 VerticalAlignment="Center"
+                 Checked="LineDrawingMode_Checked" />
+        </WrapPanel>
 
         <!-- Główny Canvas -->
         <Canvas x:Name="DrawingCanvas" Grid.Row="1" ClipToBounds="True" Background="White"

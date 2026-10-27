@@ -10,6 +10,7 @@ namespace _curved__polygon_editor.Helpers
 {
 	public class EdgeToGeometryConverter : IValueConverter
 	{
+		public static bool UseBresenham { get; set; } = false;
 		public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			if (value is Edge edge)
@@ -40,7 +41,11 @@ namespace _curved__polygon_editor.Helpers
 					edge.EndVertex.Position);
 			}
 
-			// Normal line
+			if (UseBresenham && !edge.IsArc && !edge.IsBezier)
+			{
+				return CreateBresenhamLineGeometry(edge.StartVertex.Position, edge.EndVertex.Position);
+			}
+
 			return new LineGeometry
 			{
 				StartPoint = new Point(edge.StartVertex.X, edge.StartVertex.Y),
@@ -101,6 +106,51 @@ namespace _curved__polygon_editor.Helpers
 			return pathGeometry;
 		}
 
+		private static Geometry CreateBresenhamLineGeometry(Point start, Point end)
+		{
+			int x0 = (int)Math.Round(start.X);
+			int y0 = (int)Math.Round(start.Y);
+			int x1 = (int)Math.Round(end.X);
+			int y1 = (int)Math.Round(end.Y);
+
+			int dx = Math.Abs(x1 - x0);
+			int dy = Math.Abs(y1 - y0);
+			// direction of the line, different approach would be steep 
+			int sx = x0 < x1 ? 1 : -1;
+			int sy = y0 < y1 ? 1 : -1;
+			int err = dx - dy;
+
+			var geometry = new StreamGeometry();
+			using (StreamGeometryContext ctx = geometry.Open())
+			{
+				ctx.BeginFigure(new Point(x0, y0), false, false);
+
+				while (true)
+				{
+					if (x0 == x1 && y0 == y1)
+						break;
+
+					int e2 = 2 * err;
+					if (e2 > -dy)
+					{
+						err -= dy;
+						x0 += sx;
+						// krok poziomy
+						ctx.LineTo(new Point(x0, y0), true, false);
+					}
+					if (e2 < dx)
+					{
+						err += dx;
+						y0 += sy;
+						// krok pionowy
+						ctx.LineTo(new Point(x0, y0), true, false);
+					}
+				}
+			}
+
+			geometry.Freeze();
+			return geometry;
+		}
 		private static Geometry CreateArcGeometry(Edge arcEdge)
 		{
 			Point pStart = arcEdge.StartVertex.Position;
@@ -114,158 +164,72 @@ namespace _curved__polygon_editor.Helpers
 			bool startG1 = arcEdge.StartVertex.Continuity == ContinuityType.G1;
 			bool endG1 = arcEdge.EndVertex.Continuity == ContinuityType.G1;
 
-			// Przypadek 1: Oba końce mają G0 -> promień R = d / 2 (półokrąg)
-			if (!startG1 && !endG1)
-			{
-				double r = Math.Max(d / 2.0, 0.001);
-				var figure = new PathFigure
-				{
-					StartPoint = pStart,
-					IsClosed = false
-				};
-				figure.Segments.Add(new ArcSegment
-				{
-					Point = pEnd,
-					Size = new Size(r, r),
-					RotationAngle = 0,
-					IsLargeArc = false,
-					SweepDirection = SweepDirection.Clockwise,
-					IsStroked = true
-				});
-				var pathGeometry = new PathGeometry();
-				pathGeometry.Figures.Add(figure);
-				return pathGeometry;
-			}
-			// Przypadek 2: Jeden z końców ma ciągłość G1
-			else
-			{
-				bool anchoredAtStart = startG1;
-				Vector tangent = anchoredAtStart
-					? GetIncomingTangentAtStart(arcEdge)
-					: GetOutgoingTangentAtEnd(arcEdge);
+			// default parameters if the continuity type is g0
+			double radius = Math.Max(d / 2.0, 0.001);
+			bool isLargeArc = false;
+			SweepDirection sweepDir = SweepDirection.Clockwise;
 
+			// if one of the continuity type was g1
+			if (startG1 || endG1)
+			{
+				Vector tangent = GetArcTangent(arcEdge, startG1);
+				// tangent vector
 				if (tangent.LengthSquared < 0.0001)
 					return new LineGeometry(pStart, pEnd);
-
 				tangent.Normalize();
+				// calculating cross product to on which side is the center 
+				double cp = Vector.CrossProduct(tangent, chord);
+				if (Math.Abs(cp) < 0.0001)
+					return new LineGeometry(pStart, pEnd);
 
-				if (anchoredAtStart)
-				{
-					Vector U = pEnd - pStart;
-					double cp = tangent.X * U.Y - tangent.Y * U.X;
-					if (Math.Abs(cp) < 0.0001)
-						return new LineGeometry(pStart, pEnd);
-
-					double radius = Math.Max(U.LengthSquared / (2.0 * Math.Abs(cp)), d / 2.0);
-					bool isLargeArc = (tangent.X * U.X + tangent.Y * U.Y) < 0;
-					SweepDirection sweepDir = cp > 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
-
-					var figure = new PathFigure
-					{
-						StartPoint = pStart,
-						IsClosed = false
-					};
-					figure.Segments.Add(new ArcSegment
-					{
-						Point = pEnd,
-						Size = new Size(radius, radius),
-						RotationAngle = 0,
-						IsLargeArc = isLargeArc,
-						SweepDirection = sweepDir,
-						IsStroked = true
-					});
-					var pathGeometry = new PathGeometry();
-					pathGeometry.Figures.Add(figure);
-					return pathGeometry;
-				}
-				else
-				{
-					Vector U = pEnd - pStart;
-					double cp = tangent.X * U.Y - tangent.Y * U.X;
-					if (Math.Abs(cp) < 0.0001)
-						return new LineGeometry(pStart, pEnd);
-
-					double radius = Math.Max(U.LengthSquared / (2.0 * Math.Abs(cp)), d / 2.0);
-					bool isLargeArc = (tangent.X * U.X + tangent.Y * U.Y) < 0;
-					SweepDirection sweepDir = cp > 0 ? SweepDirection.Counterclockwise : SweepDirection.Clockwise;
-
-					var figure = new PathFigure
-					{
-						StartPoint = pStart,
-						IsClosed = false
-					};
-					figure.Segments.Add(new ArcSegment
-					{
-						Point = pEnd,
-						Size = new Size(radius, radius),
-						RotationAngle = 0,
-						IsLargeArc = isLargeArc,
-						SweepDirection = sweepDir,
-						IsStroked = true
-					});
-					var pathGeometry = new PathGeometry();
-					pathGeometry.Figures.Add(figure);
-					return pathGeometry;
-				}
+				radius = Math.Max(chord.LengthSquared / (2.0 * Math.Abs(cp)), d / 2.0);
+				isLargeArc = (tangent * chord) < 0; 
+				sweepDir = (cp > 0) == startG1 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
 			}
+
+			var figure = new PathFigure { StartPoint = pStart, IsClosed = false };
+			figure.Segments.Add(new ArcSegment
+			{
+				Point = pEnd,
+				Size = new Size(radius, radius),
+				IsLargeArc = isLargeArc,
+				SweepDirection = sweepDir,
+				IsStroked = true
+			});
+
+			return new PathGeometry(new[] { figure });
 		}
 
-		// Wyznacza kierunek stycznej wchodzącej do StartVertex z poprzedniej krawędzi
-		private static Vector GetIncomingTangentAtStart(Edge arcEdge)
+		// Uniwersalna metoda wyznaczająca kierunek stycznej na początku (atStart = true) lub końcu (atStart = false) łuku
+		private static Vector GetArcTangent(Edge arcEdge, bool atStart)
 		{
-			var poly = arcEdge.OwnerPolygon;
-			if (poly == null) return arcEdge.EndVertex.Position - arcEdge.StartVertex.Position;
+			Vertex sharedVertex = atStart ? arcEdge.StartVertex : arcEdge.EndVertex;
+			Edge? adj = arcEdge.OwnerPolygon?.Edges.FirstOrDefault(
+				e => e != arcEdge && (e.StartVertex == sharedVertex || e.EndVertex == sharedVertex));
 
-			Edge? prevEdge = poly.Edges.FirstOrDefault(e => e != arcEdge && (e.EndVertex == arcEdge.StartVertex || e.StartVertex == arcEdge.StartVertex));
-			if (prevEdge == null) return arcEdge.EndVertex.Position - arcEdge.StartVertex.Position;
+			if (adj == null)
+				return arcEdge.EndVertex.Position - arcEdge.StartVertex.Position;
 
-			if (prevEdge.EndVertex == arcEdge.StartVertex)
+			bool sharedIsAdjEnd = (adj.EndVertex == sharedVertex);
+			Point pShared = sharedVertex.Position;
+			Point pOther = sharedIsAdjEnd ? adj.StartVertex.Position : adj.EndVertex.Position;
+			Vector dirFromAdj;
+			if (adj.IsBezier)
 			{
-				if (prevEdge.IsBezier && prevEdge.ControlPoint2 != null)
-					return prevEdge.EndVertex.Position - prevEdge.ControlPoint2.Position;
-				if (prevEdge.IsArc)
-					return new Vector(-(prevEdge.EndVertex.Y - prevEdge.StartVertex.Y), prevEdge.EndVertex.X - prevEdge.StartVertex.X);
-
-				return prevEdge.EndVertex.Position - prevEdge.StartVertex.Position;
+				Vertex? cp = sharedIsAdjEnd ? adj.ControlPoint2 : adj.ControlPoint1;
+				dirFromAdj = cp != null ? (pShared - cp.Position) : (pShared - pOther);
+			}
+			else if (adj.IsArc)
+			{
+				Vector adjChord = adj.EndVertex.Position - adj.StartVertex.Position;
+				dirFromAdj = new Vector(-adjChord.Y, adjChord.X) * (sharedIsAdjEnd ? 1.0 : -1.0);
 			}
 			else
 			{
-				if (prevEdge.IsBezier && prevEdge.ControlPoint1 != null)
-					return prevEdge.StartVertex.Position - prevEdge.ControlPoint1.Position;
-				if (prevEdge.IsArc)
-					return new Vector(prevEdge.StartVertex.Y - prevEdge.EndVertex.Y, -(prevEdge.StartVertex.X - prevEdge.EndVertex.X));
-
-				return prevEdge.StartVertex.Position - prevEdge.EndVertex.Position;
+				dirFromAdj = pShared - pOther;
 			}
-		}
 
-		// Wyznacza kierunek stycznej wychodzącej z EndVertex w następną krawędź
-		private static Vector GetOutgoingTangentAtEnd(Edge arcEdge)
-		{
-			var poly = arcEdge.OwnerPolygon;
-			if (poly == null) return arcEdge.EndVertex.Position - arcEdge.StartVertex.Position;
-
-			Edge? nextEdge = poly.Edges.FirstOrDefault(e => e != arcEdge && (e.StartVertex == arcEdge.EndVertex || e.EndVertex == arcEdge.EndVertex));
-			if (nextEdge == null) return arcEdge.EndVertex.Position - arcEdge.StartVertex.Position;
-
-			if (nextEdge.StartVertex == arcEdge.EndVertex)
-			{
-				if (nextEdge.IsBezier && nextEdge.ControlPoint1 != null)
-					return nextEdge.ControlPoint1.Position - nextEdge.StartVertex.Position;
-				if (nextEdge.IsArc)
-					return new Vector(-(nextEdge.EndVertex.Y - nextEdge.StartVertex.Y), nextEdge.EndVertex.X - nextEdge.StartVertex.X);
-
-				return nextEdge.EndVertex.Position - nextEdge.StartVertex.Position;
-			}
-			else
-			{
-				if (nextEdge.IsBezier && nextEdge.ControlPoint2 != null)
-					return nextEdge.ControlPoint2.Position - nextEdge.EndVertex.Position;
-				if (nextEdge.IsArc)
-					return new Vector(nextEdge.StartVertex.Y - nextEdge.EndVertex.Y, -(nextEdge.StartVertex.X - nextEdge.EndVertex.X));
-
-				return nextEdge.StartVertex.Position - nextEdge.EndVertex.Position;
-			}
+			return atStart ? dirFromAdj : -dirFromAdj;
 		}
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

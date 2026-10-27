@@ -58,9 +58,13 @@ namespace _curved__polygon_editor.Models
 				OnPropertyChanged(string.Empty);
 			}
 		}
+		private int _geometryVersion;
+		public int GeometryVersion => _geometryVersion;
 
 		public void NotifyArcChanged()
 		{
+			_geometryVersion++;
+			OnPropertyChanged(nameof(GeometryVersion));
 			OnPropertyChanged(nameof(Self));
 			OnPropertyChanged(string.Empty);
 		}

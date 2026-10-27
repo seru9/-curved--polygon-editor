@@ -66,7 +66,6 @@ namespace _curved__polygon_editor.Algorithms
 					// forced continuity on vertexes adjacent to bezier curve 
 					ApplyBezierContinuity(polygon, pinnedVertex);
 
-					// Odświeżenie offsetów po korekcie ciągłości
 					foreach (var edge in polygon.Edges)
 					{
 						if (edge.IsBezier && edge.ControlPoint1 != null && edge.ControlPoint2 != null)
