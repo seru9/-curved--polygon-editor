@@ -505,5 +505,14 @@ namespace _curved__polygon_editor
 			_curved__polygon_editor.Helpers.EdgeToGeometryConverter.UseBresenham = (BresenhamLineRadio.IsChecked == true);
 			_vm.RefreshAllEdges();
 		}
+
+		private void DocumentationButton_Click(object sender, RoutedEventArgs e)
+		{
+			var docWindow = new DocumentationWindow
+			{
+				Owner = this
+			};
+			docWindow.ShowDialog();
+		}
 	}
 }

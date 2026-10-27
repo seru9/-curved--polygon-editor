@@ -82,7 +82,9 @@
                  Content="Bresenham"
                  GroupName="LineDrawMode"
                  VerticalAlignment="Center"
+                 Margin="0,0,12,0"
                  Checked="LineDrawingMode_Checked" />
+            <Button Content="Dokumentacja" Click="DocumentationButton_Click" Padding="8,2" FontWeight="SemiBold" />
         </WrapPanel>
 
         <!-- Główny Canvas -->

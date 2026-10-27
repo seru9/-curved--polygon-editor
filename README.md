@@ -1,65 +1,64 @@
-# Edytor Wielok¹tów Krzywoliniowych - Dokumentacja
+# Edytor WielokÄ…tÃ³w Krzywoliniowych - Dokumentacja
 
-## 1. Instrukcja Obs³ugi
+## 1. Instrukcja ObsÅ‚ugi
 
-### Sterowanie Myszyn¹
-* **Klikniêcie lewym przyciskiem myszy w wierzcho³ek / punkt kontrolny:** Zaznacza pojedynczy wierzcho³ek lub punkt kontrolny Béziera. Klikniêcie i przeci¹gniêcie umo¿liwia jego przemieszczanie; solver ograniczeñ automatycznie zaktualizuje powi¹zane kszta³ty.
-* **Klikniêcie lewym przyciskiem myszy w krawêdŸ:** Zaznacza lub odznacza krawêdŸ. Mo¿liwe jest zaznaczenie wielu krawêdzi jednoczeœnie (wymagane np. przy wiêzach prostopad³oœci).
-* **Klikniêcie lewym przyciskiem myszy we wnêtrze wielok¹ta:** Klikniêcie i przeci¹gniêcie wewn¹trz wielok¹ta pozwala przesun¹æ ca³¹ figurê.
-* **Klikniêcie lewym przyciskiem myszy w pust¹ przestrzeñ:** Usuwa wszelkie bie¿¹ce zaznaczenia wierzcho³ków i krawêdzi.
+### Sterowanie MyszynÄ…
+* **KlikniÄ™cie lewym przyciskiem myszy w wierzchoÅ‚ek / punkt kontrolny:** Zaznacza pojedynczy wierzchoÅ‚ek lub punkt kontrolny BÃ©ziera. KlikniÄ™cie i przeciÄ…gniÄ™cie umoÅ¼liwia jego przemieszczanie; solver ograniczeÅ„ automatycznie zaktualizuje powiÄ…zane ksztaÅ‚ty.
+* **KlikniÄ™cie lewym przyciskiem myszy w krawÄ™dÅº:** Zaznacza lub odznacza krawÄ™dÅº. MoÅ¼liwe jest zaznaczenie wielu krawÄ™dzi jednoczeÅ›nie (wymagane np. przy wiÄ™zach prostopadÅ‚oÅ›ci).
+* **KlikniÄ™cie lewym przyciskiem myszy we wnÄ™trze wielokÄ…ta:** KlikniÄ™cie i przeciÄ…gniÄ™cie wewnÄ…trz wielokÄ…ta pozwala przesunÄ…Ä‡ caÅ‚Ä… figurÄ™.
+* **KlikniÄ™cie lewym przyciskiem myszy w pustÄ… przestrzeÅ„:** Usuwa wszelkie bieÅ¼Ä…ce zaznaczenia wierzchoÅ‚kÃ³w i krawÄ™dzi.
 
-### Skróty Klawiszowe i Pasek Narzêdzi
-* **Dodaj wierzcho³ek:** Dodaje nowy wierzcho³ek w po³owie d³ugoœci zaznaczonej krawêdzi.
-* **Usuñ wierzcho³ek:** Usuwa zaznaczony wierzcho³ek i scala przylegaj¹ce do niego krawêdzie (wielok¹t musi zachowaæ co najmniej 3 wierzcho³ki).
-* **Ustaw d³ugoœæ:** Otwiera okno dialogowe umo¿liwiaj¹ce okreœlenie dok³adnej docelowej d³ugoœci dla zaznaczonej prostej krawêdzi.
-* **Usuñ ograniczenie:** Usuwa wiêzy d³ugoœci oraz prostopad³oœci z zaznaczonych krawêdzi.
-* **Ustaw prostopad³oœæ:** Wymusza relacjê prostopad³oœci (90 stopni) pomiêdzy dwoma zaznaczonymi prostymi krawêdziami.
-* **Prze³¹cz Bezier:** Przekszta³ca zaznaczone krawêdzie w kubiczne krzywe Béziera (wraz z uchwytami kontrolnymi i domyœln¹ ci¹g³oœci¹).
-* **Prze³¹cz £uk:** Przekszta³ca zaznaczone krawêdzie w ³uki okrêgu.
-* **Przyciski ci¹g³oœci (`G0`, `G1`, `C1`):** Przypisuje klasy ci¹g³oœci geometrycznej lub parametrycznej do zaznaczonego wierzcho³ka po³¹czonego z krzywymi lub ³ukami.
-* **Tryb rysowania linii (Przyciski radiowe / Radio Buttons):** Pozwala na natychmiastowe prze³¹czanie pomiêdzy wektorowym rendererem bibliotecznym WPF (`LineGeometry`) a niestandardowym, opartym na liczbach ca³kowitych **algorytmem Bresenhama** (który renderuje ostre, pikselowe schodki dla prostych krawêdzi).
+### SkrÃ³ty Klawiszowe i Pasek NarzÄ™dzi
+* **Dodaj wierzchoÅ‚ek:** Dodaje nowy wierzchoÅ‚ek w poÅ‚owie dÅ‚ugoÅ›ci zaznaczonej krawÄ™dzi.
+* **UsuÅ„ wierzchoÅ‚ek:** Usuwa zaznaczony wierzchoÅ‚ek i scala przylegajÄ…ce do niego krawÄ™dzie (wielokÄ…t musi zachowaÄ‡ co najmniej 3 wierzchoÅ‚ki).
+* **Ustaw dÅ‚ugoÅ›Ä‡:** Otwiera okno dialogowe umoÅ¼liwiajÄ…ce okreÅ›lenie dokÅ‚adnej docelowej dÅ‚ugoÅ›ci dla zaznaczonej prostej krawÄ™dzi.
+* **UsuÅ„ ograniczenie:** Usuwa wiÄ™zy dÅ‚ugoÅ›ci oraz prostopadÅ‚oÅ›ci z zaznaczonych krawÄ™dzi.
+* **Ustaw prostopadÅ‚oÅ›Ä‡:** Wymusza relacjÄ™ prostopadÅ‚oÅ›ci (90 stopni) pomiÄ™dzy dwoma zaznaczonymi prostymi krawÄ™dziami.
+* **PrzeÅ‚Ä…cz Bezier:** PrzeksztaÅ‚ca zaznaczone krawÄ™dzie w kubiczne krzywe BÃ©ziera (wraz z uchwytami kontrolnymi i domyÅ›lnÄ… ciÄ…gÅ‚oÅ›ciÄ…).
+* **PrzeÅ‚Ä…cz Åuk:** PrzeksztaÅ‚ca zaznaczone krawÄ™dzie w Å‚uki okrÄ™gu.
+* **Przyciski ciÄ…gÅ‚oÅ›ci (`G0`, `G1`, `C1`):** Przypisuje klasy ciÄ…gÅ‚oÅ›ci geometrycznej lub parametrycznej do zaznaczonego wierzchoÅ‚ka poÅ‚Ä…czonego z krzywymi lub Å‚ukami.
+* **Tryb rysowania linii (Przyciski radiowe / Radio Buttons):** Pozwala na natychmiastowe przeÅ‚Ä…czanie pomiÄ™dzy wektorowym rendererem bibliotecznym WPF (`LineGeometry`) a niestandardowym, opartym na liczbach caÅ‚kowitych **algorytmem Bresenhama** (ktÃ³ry renderuje ostre, pikselowe schodki dla prostych krawÄ™dzi).
 
 ---
 
-## 2. Za³o¿enia Projektowe
+## 2. ZaÅ‚oÅ¼enia Projektowe
 
-* **Struktura wielok¹ta:** Wielok¹t musi byæ zamkniêt¹ pêtl¹ uporz¹dkowanych wierzcho³ków po³¹czonych krawêdziami. Ka¿da figura musi zawieraæ co najmniej 3 wierzcho³ki.
-* **Modu³owoœæ krawêdzi:** Krawêdzie mog¹ dynamicznie zmieniaæ swój typ (`Line` – linia, `Bezier` – krzywa Béziera lub `Arc` – ³uk).
-* **Interaktywne ograniczenia:** System zak³ada, ¿e rozwi¹zywanie wiêzów geometrycznych powinno odbywaæ siê w czasie rzeczywistym podczas przeci¹gania wierzcho³ków.
-* **Liczba krawêdzi w wielok¹cie** Liczba mo¿liwych krawêdzi w wielok¹cie wynosi 15.
-* **Zapewnienie ci¹g³oœci:** P³ynne przejœcia pomiêdzy po³¹czonymi segmentami krzywych s¹ zarz¹dzane za pomoc¹ klas ci¹g³oœci G0, G1 oraz C1.
+* **Struktura wielokÄ…ta:** WielokÄ…t musi byÄ‡ zamkniÄ™tÄ… pÄ™tlÄ… uporzÄ…dkowanych wierzchoÅ‚kÃ³w poÅ‚Ä…czonych krawÄ™dziami. KaÅ¼da figura musi zawieraÄ‡ co najmniej 3 wierzchoÅ‚ki.
+* **ModuÅ‚owoÅ›Ä‡ krawÄ™dzi:** KrawÄ™dzie mogÄ… dynamicznie zmieniaÄ‡ swÃ³j typ (`Line` â€“ linia, `Bezier` â€“ krzywa BÃ©ziera lub `Arc` â€“ Å‚uk).
+* **Interaktywne ograniczenia:** System zakÅ‚ada, Å¼e rozwiÄ…zywanie wiÄ™zÃ³w geometrycznych powinno odbywaÄ‡ siÄ™ w czasie rzeczywistym podczas przeciÄ…gania wierzchoÅ‚kÃ³w.
+* **Liczba krawÄ™dzi w wielokÄ…cie** Liczba moÅ¼liwych krawÄ™dzi w wielokÄ…cie wynosi 15.
+* **Zapewnienie ciÄ…gÅ‚oÅ›ci:** PÅ‚ynne przejÅ›cia pomiÄ™dzy poÅ‚Ä…czonymi segmentami krzywych sÄ… zarzÄ…dzane za pomocÄ… klas ciÄ…gÅ‚oÅ›ci G0, G1 oraz C1.
 
 ---
 
 ## 3. Model Danych
 
-G³ówna architektura opiera siê na wzorcu MVVM (Model-View-ViewModel) oraz kluczowych modelach domenowych:
+GÅ‚Ã³wna architektura opiera siÄ™ na wzorcu MVVM (Model-View-ViewModel) oraz kluczowych modelach domenowych:
 
-* **`Polygon`:** Reprezentuje zamkniêty kszta³t 2D zawieraj¹cy kolekcjê `ObservableCollection<Vertex>` (wierzcho³ki) oraz `ObservableCollection<Edge>` (krawêdzie).
-* **`Vertex`:** Reprezentuje punkt 2D (`X`, `Y`) wraz ze stanem zaznaczenia (`IsSelected`) oraz metadanymi ci¹g³oœci (`ContinuityType`, `IsContinuityExplicitlySet`).
-* **`Edge`:** £¹czy wierzcho³ek pocz¹tkowy (`StartVertex`) z koñcowym (`EndVertex`). Przechowuje typ krawêdzi (`EdgeType`: `Line`, `Bezier`, `Arc`), opcjonalne punkty kontrolne Béziera (`ControlPoint1`, `ControlPoint2`), referencjê do macierzystego wielok¹ta oraz kolekcjê zastosowanych obiektów ograniczeñ (`Constraint`).
-* **`Constraint`:** S³u¿y jako baza dla konkretnych regu³ geometrycznych, zaimplementowanych g³ównie jako `LengthConstraint` oraz `PerpendicularConstraint` .
+* **`Polygon`:** Reprezentuje zamkniÄ™ty ksztaÅ‚t 2D zawierajÄ…cy kolekcjÄ™ `ObservableCollection<Vertex>` (wierzchoÅ‚ki) oraz `ObservableCollection<Edge>` (krawÄ™dzie).
+* **`Vertex`:** Reprezentuje punkt 2D (`X`, `Y`) wraz ze stanem zaznaczenia (`IsSelected`) oraz metadanymi ciÄ…gÅ‚oÅ›ci (`ContinuityType`, `IsContinuityExplicitlySet`).
+* **`Edge`:** ÅÄ…czy wierzchoÅ‚ek poczÄ…tkowy (`StartVertex`) z koÅ„cowym (`EndVertex`). Przechowuje typ krawÄ™dzi (`EdgeType`: `Line`, `Bezier`, `Arc`), opcjonalne punkty kontrolne BÃ©ziera (`ControlPoint1`, `ControlPoint2`), referencjÄ™ do macierzystego wielokÄ…ta oraz kolekcjÄ™ zastosowanych obiektÃ³w ograniczeÅ„ (`Constraint`).
+* **`Constraint`:** SÅ‚uÅ¼y jako baza dla konkretnych reguÅ‚ geometrycznych, zaimplementowanych gÅ‚Ã³wnie jako `LengthConstraint` oraz `PerpendicularConstraint` .
 
 ---
 
 ## 4. Zaimplementowane Algorytmy
 
 ### A.`ConstraintSolver`
-`ConstraintSolver` pilnuje, ¿e ka¿dy wierzcho³ek i krawêdŸ jest zgodna z ograniczeniami na³o¿onymi na nie
-* Gdy u¿ytkownik przeci¹ga wierzcho³ek, solver dostosowuje po³¹czone krawêdzie tak, aby spe³niæ aktywne ograniczenia (takie jak sta³e d³ugoœci czy k¹ty proste).
-* W przypadku wiêzów d³ugoœci, rzutuje wierzcho³ek koñcowy wzd³u¿ wektora kierunkowego, aby dopasowaæ docelow¹ d³ugoœæ.
-* W przypadku wiêzów prostopad³oœci, iteracyjnie obróci wektory krawêdzi, aby zachowaæ k¹t $90^\circ$ wzglêdem krawêdzi docelowej.
+`ConstraintSolver` pilnuje, Å¼e kaÅ¼dy wierzchoÅ‚ek i krawÄ™dÅº jest zgodna z ograniczeniami naÅ‚oÅ¼onymi na nie
+* Gdy uÅ¼ytkownik przeciÄ…ga wierzchoÅ‚ek, solver dostosowuje poÅ‚Ä…czone krawÄ™dzie tak, aby speÅ‚niÄ‡ aktywne ograniczenia (takie jak staÅ‚e dÅ‚ugoÅ›ci czy kÄ…ty proste).
+* W przypadku wiÄ™zÃ³w dÅ‚ugoÅ›ci, rzutuje wierzchoÅ‚ek koÅ„cowy wzdÅ‚uÅ¼ wektora kierunkowego, aby dopasowaÄ‡ docelowÄ… dÅ‚ugoÅ›Ä‡.
+* W przypadku wiÄ™zÃ³w prostopadÅ‚oÅ›ci, iteracyjnie obrÃ³ci wektory krawÄ™dzi, aby zachowaÄ‡ kÄ…t $90^\circ$ wzglÄ™dem krawÄ™dzi docelowej.
 
 ### B. Algorytm Bresenhama dla Prostej
-* Dzia³a ca³kowicie na wspó³rzêdnych ca³kowitoliczbowych (`int`) poprzez zaokr¹glanie pozycji pikseli.
-* `sx` i `sy` to nasz krok w zale¿noœci, ¿eby uniezale¿niæ siê od kierunku linii. 
-* W ka¿dej iteracji pêtli obliczamy err = dx - dy (dla dx = x1 - x0 i dy = y1 - y0). W zale¿nosci od rozmiaru err podejmujemy decyzjê czy iœæ do na ukos czy na bok.
-* Nasz err symbolizuje aktualn¹ odleg³oœæ naszej dyskretnej linii od tej prawdziwej (analitycznej), inaczej err to odleg³oœæ wartoœcu funkcji liniowej w tym punkcie od œrodka pixelu.
+* `sx` i `sy` to nasz krok w zaleÅ¼noÅ›ci, Å¼eby uniezaleÅ¼niÄ‡ siÄ™ od kierunku linii. 
+* W kaÅ¼dej iteracji pÄ™tli obliczamy err = dx - dy (dla dx = x1 - x0 i dy = y1 - y0). W zaleÅ¼nosci od rozmiaru err podejmujemy decyzjÄ™ czy iÅ›Ä‡ do na ukos czy na bok.
+* Nasz err symbolizuje aktualnÄ… odlegÅ‚oÅ›Ä‡ naszej dyskretnej linii od tej prawdziwej (analitycznej), inaczej err to odlegÅ‚oÅ›Ä‡ wartoÅ›cu funkcji liniowej w tym punkcie od Å›rodka pixelu.
 
-### C. Geometria £uku Ko³owego (`CreateArcGeometry`)
-* Oblicza d³ugoœci ciêciw oraz weryfikuje wymagania dotycz¹ce ci¹g³oœci (`G1`).
-* Wykorzystuje iloczyny wektorowe i skalarne (`Vector.CrossProduct`, operacje na wektorach) do wyznaczania precyzyjnych promieni okrêgów oraz kierunków zakrzywienia (`sweep direction`), gwarantuj¹c g³adkie, styczne przejœcia z prostych odcinków lub krzywych w ³uki ko³owe.
+### C. Geometria Åuku KoÅ‚owego (`CreateArcGeometry`)
+* Oblicza dÅ‚ugoÅ›ci ciÄ™ciw oraz weryfikuje wymagania dotyczÄ…ce ciÄ…gÅ‚oÅ›ci (`G1`).
+* Wykorzystuje iloczyny wektorowe i skalarne (`Vector.CrossProduct`, operacje na wektorach) do wyznaczania precyzyjnych promieni okrÄ™gÃ³w oraz kierunkÃ³w zakrzywienia (`sweep direction`), gwarantujÄ…c gÅ‚adkie, styczne przejÅ›cia z prostych odcinkÃ³w lub krzywych w Å‚uki koÅ‚owe.
 
-### D. Przyrostowe Wyznaczanie kubicznych Krzywych Béziera
-* Konwertuje wielomianow¹ bazê Bernsteina na przyrostowe kroki ró¿nicowe (`PolyLineSegment`) na bazê wielomianow¹, ¿eby póŸniej za pomoc¹ metody przyrostowej obliczaæ punkty krzywej.
-* Metoda przyrostowa pozwala na obliczanie nastêpnych punktów krzywej beziera za pomoc¹ wartoœci sta³ych nie zale¿ych od parametrów funkcji (obliczaj¹c 3 pochodn¹ z delty).
+### D. Przyrostowe Wyznaczanie kubicznych Krzywych BÃ©ziera
+* Konwertuje wielomianowÄ… bazÄ™ Bernsteina na przyrostowe kroki rÃ³Å¼nicowe (`PolyLineSegment`) na bazÄ™ wielomianowÄ…, Å¼eby pÃ³Åºniej za pomocÄ… metody przyrostowej obliczaÄ‡ punkty krzywej.
+* Metoda przyrostowa pozwala na obliczanie nastÄ™pnych punktÃ³w krzywej beziera za pomocÄ… wartoÅ›ci staÅ‚ych nie zaleÅ¼ych od parametrÃ³w funkcji (obliczajÄ…c 3 pochodnÄ… z delty).

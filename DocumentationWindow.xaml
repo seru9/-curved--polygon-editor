@@ -1,0 +1,392 @@
+<Window x:Class="_curved__polygon_editor.DocumentationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dokumentacja - Edytor Wielokątów Krzywoliniowych"
+        Height="700" Width="850"
+        MinHeight="500" MinWidth="600"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI"
+        Background="#F5F7FA">
+
+    <Window.Resources>
+        <!-- Styl dla kart sekcji -->
+        <Style x:Key="SectionCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="20,16" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="8" Opacity="0.06" ShadowDepth="2" Direction="270" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Nagłówek sekcji H2 -->
+        <Style x:Key="SectionHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#1E293B" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <!-- Podnagłówek sekcji H3 -->
+        <Style x:Key="SubSectionHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#334155" />
+            <Setter Property="Margin" Value="0,10,0,6" />
+        </Style>
+
+        <!-- Paragraf zwykłego tekstu -->
+        <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#475569" />
+            <Setter Property="LineHeight" Value="20" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <!-- Element listy wypunktowanej -->
+        <Style x:Key="BulletItemStyle" TargetType="DockPanel">
+            <Setter Property="Margin" Value="4,3,0,5" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Pasek tytułowy okna dokumentacji -->
+        <Border Grid.Row="0" Background="#1E293B" Padding="24,18">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Edytor Wielokątów Krzywoliniowych"
+                               FontSize="20" FontWeight="Bold" Foreground="White" />
+                    <TextBlock Text="Dokumentacja użytkownika, założenia projektowe i algorytmy"
+                               FontSize="13" Foreground="#94A3B8" Margin="0,3,0,0" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Zamknij" Click="CloseButton_Click"
+                        Padding="14,6" Background="#334155" Foreground="White" BorderThickness="0"
+                        Cursor="Hand" VerticalAlignment="Center">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Główna zawartość z przewijaniem -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,20,24,10">
+            <StackPanel MaxWidth="800" HorizontalAlignment="Stretch">
+
+                <!-- Sekcja 1: Instrukcja Obsługi -->
+                <Border Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="1. Instrukcja Obsługi" Style="{StaticResource SectionHeadingStyle}" Foreground="#0284C7" />
+
+                        <!-- Sterowanie Myszą -->
+                        <TextBlock Text="Sterowanie Myszą" Style="{StaticResource SubSectionHeadingStyle}" />
+                        
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Kliknięcie lewym przyciskiem myszy w wierzchołek / punkt kontrolny:</Bold> Zaznacza pojedynczy wierzchołek lub punkt kontrolny Béziera. Kliknięcie i przeciągnięcie umożliwia jego przemieszczanie; solver ograniczeń automatycznie zaktualizuje powiązane kształty.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Kliknięcie lewym przyciskiem myszy w krawędź:</Bold> Zaznacza lub odznacza krawędź. Możliwe jest zaznaczenie wielu krawędzi jednocześnie (wymagane np. przy więzach prostopadłości).
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Kliknięcie lewym przyciskiem myszy we wnętrze wielokąta:</Bold> Kliknięcie i przeciągnięcie wewnątrz wielokąta pozwala przesunąć całą figurę.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Kliknięcie lewym przyciskiem myszy w pustą przestrzeń:</Bold> Usuwa wszelkie bieżące zaznaczenia wierzchołków i krawędzi.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <Separator Margin="0,12,0,8" Background="#E2E8F0" />
+
+                        <!-- Skróty Klawiszowe i Pasek Narzędzi -->
+                        <TextBlock Text="Skróty Klawiszowe i Pasek Narzędzi" Style="{StaticResource SubSectionHeadingStyle}" />
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Dodaj wierzchołek:</Bold> Dodaje nowy wierzchołek w połowie długości zaznaczonej krawędzi.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Usuń wierzchołek:</Bold> Usuwa zaznaczony wierzchołek i scala przylegające do niego krawędzie (wielokąt musi zachować co najmniej 3 wierzchołki).
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Ustaw długość:</Bold> Otwiera okno dialogowe umożliwiające określenie dokładnej docelowej długości dla zaznaczonej prostej krawędzi.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Usuń ograniczenie:</Bold> Usuwa więzy długości oraz prostopadłości z zaznaczonych krawędzi.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Ustaw prostopadłość:</Bold> Wymusza relację prostopadłości (90 stopni) pomiędzy dwoma zaznaczonymi prostymi krawędziami.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Przełącz Bezier:</Bold> Przekształca zaznaczone krawędzie w kubiczne krzywe Béziera (wraz z uchwytami kontrolnymi i domyślną ciągłością).
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Przełącz Łuk:</Bold> Przekształca zaznaczone krawędzie w łuki okręgu.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Przyciski ciągłości (G0, G1, C1):</Bold> Przypisuje klasy ciągłości geometrycznej lub parametrycznej do zaznaczonego wierzchołka połączonego z krzywymi lub łukami.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#0284C7" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Tryb rysowania linii (Funkcja biblioteczna / Bresenham):</Bold> Pozwala na natychmiastowe przełączanie pomiędzy wektorowym rendererem bibliotecznym WPF (<Italic>LineGeometry</Italic>) a niestandardowym, opartym na liczbach całkowitych <Bold>algorytmem Bresenhama</Bold> (który renderuje ostre, pikselowe schodki dla prostych krawędzi).
+                            </TextBlock>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Sekcja 2: Założenia Projektowe -->
+                <Border Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="2. Założenia Projektowe" Style="{StaticResource SectionHeadingStyle}" Foreground="#059669" />
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#059669" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Struktura wielokąta:</Bold> Wielokąt musi być zamkniętą pętlą uporządkowanych wierzchołków połączonych krawędziami. Każda figura musi zawierać co najmniej 3 wierzchołki.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#059669" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Modułowość krawędzi:</Bold> Krawędzie mogą dynamicznie zmieniać swój typ (<Italic>Line</Italic> – linia, <Italic>Bezier</Italic> – krzywa Béziera lub <Italic>Arc</Italic> – łuk).
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#059669" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Interaktywne ograniczenia:</Bold> System zakłada, że rozwiązywanie więzów geometrycznych powinno odbywać się w czasie rzeczywistym podczas przeciągania wierzchołków.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#059669" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Liczba krawędzi w wielokącie:</Bold> Liczba możliwych krawędzi w wielokącie wynosi 15.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#059669" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Zapewnienie ciągłości:</Bold> Płynne przejścia pomiędzy połączonymi segmentami krzywych są zarządzane za pomocą klas ciągłości G0, G1 oraz C1.
+                            </TextBlock>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Sekcja 3: Model Danych -->
+                <Border Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="3. Model Danych" Style="{StaticResource SectionHeadingStyle}" Foreground="#7C3AED" />
+
+                        <TextBlock Text="Główna architektura opiera się na wzorcu MVVM (Model-View-ViewModel) oraz kluczowych modelach domenowych:"
+                                   Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8" />
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#7C3AED" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Polygon:</Bold> Reprezentuje zamknięty kształt 2D zawierający kolekcję <Run FontFamily="Consolas">ObservableCollection&lt;Vertex&gt;</Run> (wierzchołki) oraz <Run FontFamily="Consolas">ObservableCollection&lt;Edge&gt;</Run> (krawędzie).
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#7C3AED" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Vertex:</Bold> Reprezentuje punkt 2D (<Italic>X, Y</Italic>) wraz ze stanem zaznaczenia (<Italic>IsSelected</Italic>) oraz metadanymi ciągłości (<Italic>ContinuityType, IsContinuityExplicitlySet</Italic>).
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#7C3AED" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Edge:</Bold> Łączy wierzchołek początkowy (<Italic>StartVertex</Italic>) z końcowym (<Italic>EndVertex</Italic>). Przechowuje typ krawędzi (<Italic>EdgeType: Line, Bezier, Arc</Italic>), opcjonalne punkty kontrolne Béziera (<Italic>ControlPoint1, ControlPoint2</Italic>), referencję do macierzystego wielokąta oraz kolekcję zastosowanych obiektów ograniczeń (<Italic>Constraint</Italic>).
+                            </TextBlock>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#7C3AED" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Bold>Constraint:</Bold> Służy jako baza dla konkretnych reguł geometrycznych, zaimplementowanych głównie jako <Run FontFamily="Consolas">LengthConstraint</Run> oraz <Run FontFamily="Consolas">PerpendicularConstraint</Run>.
+                            </TextBlock>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Sekcja 4: Zaimplementowane Algorytmy -->
+                <Border Style="{StaticResource SectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="4. Zaimplementowane Algorytmy" Style="{StaticResource SectionHeadingStyle}" Foreground="#D97706" />
+
+                        <!-- A. ConstraintSolver -->
+                        <TextBlock Text="A. ConstraintSolver" Style="{StaticResource SubSectionHeadingStyle}" />
+                        <TextBlock Text="ConstraintSolver pilnuje, że każdy wierzchołek i krawędź jest zgodna z ograniczeniami nałożonymi na nie:"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                Gdy użytkownik przeciąga wierzchołek, solver dostosowuje połączone krawędzie tak, aby spełnić aktywne ograniczenia (takie jak stałe długości czy kąty proste).
+                            </TextBlock>
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                W przypadku więzów długości, rzutuje wierzchołek końcowy wzdłuż wektora kierunkowego, aby dopasować docelową długość.
+                            </TextBlock>
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                W przypadku więzów prostopadłości, iteracyjnie obróci wektory krawędzi, aby zachować kąt 90° względem krawędzi docelowej.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <Separator Margin="0,12,0,8" Background="#E2E8F0" />
+
+                        <!-- B. Algorytm Bresenhama dla Prostej -->
+                        <TextBlock Text="B. Algorytm Bresenhama dla Prostej" Style="{StaticResource SubSectionHeadingStyle}" />
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                Działa całkowicie na współrzędnych całkowitoliczbowych (<Run FontFamily="Consolas">int</Run>) poprzez zaokrąglanie pozycji pikseli.
+                            </TextBlock>
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                <Run FontFamily="Consolas">sx</Run> i <Run FontFamily="Consolas">sy</Run> to nasz krok w zależności, żeby uniezależnić się od kierunku linii.
+                            </TextBlock>
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                W każdej iteracji pętli obliczamy <Run FontFamily="Consolas">err = dx - dy</Run> (dla <Run FontFamily="Consolas">dx = x1 - x0</Run> i <Run FontFamily="Consolas">dy = y1 - y0</Run>). W zależności od rozmiaru <Italic>err</Italic> podejmujemy decyzję czy iść na ukos czy na bok.
+                            </TextBlock>
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                Nasz <Italic>err</Italic> symbolizuje aktualną odległość naszej dyskretnej linii od tej prawdziwej (analitycznej), inaczej <Italic>err</Italic> to odległość wartości funkcji liniowej w tym punkcie od środka piksela.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <Separator Margin="0,12,0,8" Background="#E2E8F0" />
+
+                        <!-- C. Geometria Łuku Kołowego -->
+                        <TextBlock Text="C. Geometria Łuku Kołowego (CreateArcGeometry)" Style="{StaticResource SubSectionHeadingStyle}" />
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                Oblicza długości cięciw oraz weryfikuje wymagania dotyczące ciągłości (<Bold>G1</Bold>).
+                            </TextBlock>
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                Wykorzystuje iloczyny wektorowe i skalarne (<Run FontFamily="Consolas">Vector.CrossProduct</Run>, operacje na wektorach) do wyznaczania precyzyjnych promieni okręgów oraz kierunków zakrzywienia (<Italic>sweep direction</Italic>), gwarantując gładkie, styczne przejścia z prostych odcinków lub krzywych w łuki kołowe.
+                            </TextBlock>
+                        </DockPanel>
+
+                        <Separator Margin="0,12,0,8" Background="#E2E8F0" />
+
+                        <!-- D. Przyrostowe Wyznaczanie kubicznych Krzywych Béziera -->
+                        <TextBlock Text="D. Przyrostowe Wyznaczanie kubicznych Krzywych Béziera" Style="{StaticResource SubSectionHeadingStyle}" />
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                Konwertuje wielomianową bazę Bernsteina na przyrostowe kroki różnicowe (<Run FontFamily="Consolas">PolyLineSegment</Run>) na bazę wielomianową, żeby później za pomocą metody przyrostowej obliczać punkty krzywej.
+                            </TextBlock>
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource BulletItemStyle}">
+                            <TextBlock Text="• " FontWeight="Bold" Foreground="#D97706" />
+                            <TextBlock TextWrapping="Wrap">
+                                Metoda przyrostowa pozwala na obliczanie następnych punktów krzywej Béziera za pomocą wartości stałych niezależnych od parametrów funkcji (obliczając 3. pochodną z delty).
+                            </TextBlock>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Dolny pasek stanu -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,10">
+            <Grid>
+                <TextBlock Text="Źródło: README.md" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="11" />
+                <Button Content="Zamknij" HorizontalAlignment="Right" Click="CloseButton_Click"
+                        Padding="18,6" Background="#0284C7" Foreground="White" BorderThickness="0"
+                        Cursor="Hand" FontWeight="SemiBold">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
