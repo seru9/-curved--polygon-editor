@@ -8,7 +8,6 @@ namespace _curved__polygon_editor.Algorithms
 {
 	public static class ConstraintSolver
 	{
-		// Dodajemy opcjonalny parametr pinnedVertex i zwiększamy domyślną liczbę iteracji dla lepszej zbieżności
 		public static void Solve(IEnumerable<Polygon> polygons, Vertex? pinnedVertex = null, int iterations = 15)
 		{
 			var polyList = polygons.ToList();

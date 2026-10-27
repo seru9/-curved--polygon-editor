@@ -26,6 +26,7 @@
 * **Struktura wielok¹ta:** Wielok¹t musi byæ zamkniêt¹ pêtl¹ uporz¹dkowanych wierzcho³ków po³¹czonych krawêdziami. Ka¿da figura musi zawieraæ co najmniej 3 wierzcho³ki.
 * **Modu³owoœæ krawêdzi:** Krawêdzie mog¹ dynamicznie zmieniaæ swój typ (`Line` – linia, `Bezier` – krzywa Béziera lub `Arc` – ³uk).
 * **Interaktywne ograniczenia:** System zak³ada, ¿e rozwi¹zywanie wiêzów geometrycznych powinno odbywaæ siê w czasie rzeczywistym podczas przeci¹gania wierzcho³ków.
+* **Liczba krawêdzi w wielok¹cie** Liczba mo¿liwych krawêdzi w wielok¹cie wynosi 15.
 * **Zapewnienie ci¹g³oœci:** P³ynne przejœcia pomiêdzy po³¹czonymi segmentami krzywych s¹ zarz¹dzane za pomoc¹ klas ci¹g³oœci G0, G1 oraz C1.
 
 ---
