@@ -120,24 +120,20 @@ namespace _curved__polygon_editor.Algorithms
 			// case 1 - both edges are bezier curves 
 			if (inEdge.IsBezier && outEdge.IsBezier)
 			{
-				// control points of the edges 
 				Vertex? cpIn = inEdge.ControlPoint2;
 				Vertex? cpOut = outEdge.ControlPoint1;
 				if (cpIn == null || cpOut == null) return;
 
 				if (pinnedVertex == cpIn)
 				{
-					// if dragged is cpIn then we adjust other cpOut
 					AdjustOppositePoint(v.Position, cpIn.Position, cpOut, v.Continuity, factor: 1.0);
 				}
 				else if (pinnedVertex == cpOut)
 				{
-					//otherwise
 					AdjustOppositePoint(v.Position, cpOut.Position, cpIn, v.Continuity, factor: 1.0);
 				}
 				else
 				{
-					// Przeciągany jest wierzchołek v lub inny element -> wyrównujemy oba punkty kontrolne
 					Vector dirIn = v.Position - cpIn.Position;
 					Vector dirOut = cpOut.Position - v.Position;
 					Vector avgDir = dirIn + dirOut;
@@ -166,24 +162,68 @@ namespace _curved__polygon_editor.Algorithms
 			else
 			{
 				Edge bezierEdge = inEdge.IsBezier ? inEdge : outEdge;
-				Edge otherEdge = inEdge.IsBezier ? outEdge : inEdge;
-
-				// If the adjacent edge is an Arc, the Arc adapts to the Bezier curve (not the other way around)
-				if (otherEdge.IsArc) return;
+				Edge lineEdge = inEdge.IsBezier ? outEdge : inEdge;
 
 				Vertex? cp = (bezierEdge == inEdge) ? bezierEdge.ControlPoint2 : bezierEdge.ControlPoint1;
-				Vertex lineOtherVertex = (otherEdge.StartVertex == v) ? otherEdge.EndVertex : otherEdge.StartVertex;
+				Vertex lineOtherVertex = (lineEdge.StartVertex == v) ? lineEdge.EndVertex : lineEdge.StartVertex;
 
 				if (cp == null) return;
 
 				if (pinnedVertex == cp)
 				{
-					// If dragged is control point then the EndVertex of the adjacent edge is being moved 
-					AdjustOppositePoint(v.Position, cp.Position, lineOtherVertex, v.Continuity, factor: 3.0);
+					// Sprawdzamy, czy krawędź liniowa ma ograniczenie długości
+					var lenConstraint = lineEdge.Constraints
+						.OfType<LengthConstraint>()
+						.FirstOrDefault(c => c.IsActive);
+
+					if (v.Continuity == ContinuityType.C1)
+					{
+						if (lenConstraint != null)
+						{
+							// Krawędź ma zablokowaną długość L -> odległość (v, cp) MUSI wynosić L / 3.
+							// wierzchołek v 
+							Vector dir = lineOtherVertex.Position - cp.Position;
+							if (dir.Length > 0.0001)
+							{
+								dir.Normalize();
+								double cpToV = lenConstraint.TargetLength / 3.0;
+								v.Position = cp.Position + dir * cpToV;
+								lineOtherVertex.Position = v.Position + dir * lenConstraint.TargetLength;
+							}
+						}
+						else
+						{
+							// no constraint on the length of the tangent, only perpendicular constraint
+							Vector dir = v.Position - cp.Position;
+							if (dir.Length > 0.0001)
+							{
+								// we make vertice v (that means lineEdge) collinear with cp
+								v.Position = new Point(
+									(3.0 * cp.Position.X + lineOtherVertex.Position.X) / 4.0,
+									(3.0 * cp.Position.Y + lineOtherVertex.Position.Y) / 4.0
+								);
+							}
+						}
+					}
+					else if (v.Continuity == ContinuityType.G1)
+					{
+						// Dla G1 liczy się tylko współliniowość cp - v - lineOtherVertex.
+						// we make v be collinear with the lineOtherVertex and cp with respect of proportion
+						Vector totalDir = lineOtherVertex.Position - cp.Position;
+						double totalLen = totalDir.Length;
+						if (totalLen > 0.0001)
+						{
+							totalDir.Normalize();
+							double cpDist = (v.Position - cp.Position).Length;
+							// secure v from leaving
+							cpDist = System.Math.Clamp(cpDist, 5.0, System.Math.Max(6.0, totalLen - 5.0));
+							v.Position = cp.Position + totalDir * cpDist;
+						}
+					}
 				}
 				else
 				{
-					// Vertex is being moved then controlPoint needs to be adjusted
+					// Vertice of the polygon is being dragged, then cp just only be adjusted
 					AdjustOppositePoint(v.Position, lineOtherVertex.Position, cp, v.Continuity, factor: 1.0 / 3.0);
 				}
 			}
